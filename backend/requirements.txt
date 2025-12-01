@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+aiosqlite
+pydantic
+pydantic-settings
+python-multipart
+python-telegram-bot
+pytesseract
+opencv-python-headless
+pillow
+alembic
+pytest
+httpx
