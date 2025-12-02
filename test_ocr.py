@@ -5,7 +5,8 @@ sys.path.append(os.path.join(os.getcwd(), "backend"))
 from backend.app.ocr import pipeline, parser
 
 # Test OCR with the test image
-image_path = "/Users/camerondavis/Projects/Coding/CAPFREE/test_betting_slip.png"
+# image_path = "/Users/camerondavis/Projects/Coding/CAPFREE/test_betting_slip.png"
+image_path = "/Users/camerondavis/Downloads/photo_2025-12-02_06-00-10.jpg"
 
 with open(image_path, 'rb') as f:
     image_bytes = f.read()
