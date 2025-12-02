@@ -120,7 +120,7 @@ export default function SettingsPage() {
     }
 
     if (loading) {
-        return <div className="text-gray-500">Loading...</div>
+        return <div className="text-gray-700">Loading...</div>
     }
 
     return (
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="divide-y divide-gray-200">
                     {cappers.length === 0 ? (
-                        <div className="p-6 text-center text-gray-500">
+                        <div className="p-6 text-center text-gray-700">
                             No cappers yet. Add one to get started.
                         </div>
                     ) : (
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                                 <div>
                                     <h3 className="font-medium text-gray-900">{capper.name}</h3>
                                     {capper.telegram_chat_id && (
-                                        <p className="text-sm text-gray-500">
+                                        <p className="text-sm text-gray-700">
                                             Telegram: {capper.telegram_chat_id}
                                         </p>
                                     )}

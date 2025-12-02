@@ -165,8 +165,8 @@ export default function UploadPage() {
                     <button
                         onClick={() => setActiveTab("upload")}
                         className={`${activeTab === "upload"
-                                ? "border-green-500 text-green-600"
-                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                            ? "border-green-500 text-green-600"
+                            : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800"
                             } flex items-center whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
                     >
                         <Upload className="mr-2 h-5 w-5" />
@@ -175,8 +175,8 @@ export default function UploadPage() {
                     <button
                         onClick={() => setActiveTab("manual")}
                         className={`${activeTab === "manual"
-                                ? "border-green-500 text-green-600"
-                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                            ? "border-green-500 text-green-600"
+                            : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800"
                             } flex items-center whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
                     >
                         <Plus className="mr-2 h-5 w-5" />
@@ -191,7 +191,7 @@ export default function UploadPage() {
                     <div className="rounded-lg bg-white p-6 shadow">
                         <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-12">
                             <Upload className="h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-500">Upload a screenshot of your picks</p>
+                            <p className="mt-2 text-sm text-gray-700">Upload a screenshot of your picks</p>
                             <input
                                 type="file"
                                 accept="image/*"
@@ -226,17 +226,17 @@ export default function UploadPage() {
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Pick</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Units</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Raw Text</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Units</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Raw Text</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 bg-white">
                                         {picks.map((pick, index) => (
                                             <tr key={index}>
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{pick.pick_text}</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{pick.units_risked}u</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{pick.raw_text}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.units_risked}u</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.raw_text}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -269,7 +269,7 @@ export default function UploadPage() {
                                 list="cappers-list"
                                 value={formData.capper_name}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="Select or type capper name"
                                 required
                             />
@@ -290,7 +290,7 @@ export default function UploadPage() {
                                 name="sport"
                                 value={formData.sport}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-gray-900 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 required
                             >
                                 <option value="">Select a sport</option>
@@ -318,7 +318,7 @@ export default function UploadPage() {
                                 name="league"
                                 value={formData.league}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., NFL, Premier League"
                             />
                         </div>
@@ -334,7 +334,7 @@ export default function UploadPage() {
                                 name="match_key"
                                 value={formData.match_key}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., LAL vs BOS"
                             />
                         </div>
@@ -350,7 +350,7 @@ export default function UploadPage() {
                                 value={formData.pick_text}
                                 onChange={handleInputChange}
                                 rows={3}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., Lakers -5.5, Over 220.5"
                                 required
                             />
@@ -371,7 +371,7 @@ export default function UploadPage() {
                                     onChange={handleInputChange}
                                     step="0.5"
                                     min="0.5"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                     placeholder="1.0"
                                     required
                                 />
@@ -388,7 +388,7 @@ export default function UploadPage() {
                                     name="odds"
                                     value={formData.odds}
                                     onChange={handleInputChange}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                     placeholder="-110"
                                 />
                             </div>

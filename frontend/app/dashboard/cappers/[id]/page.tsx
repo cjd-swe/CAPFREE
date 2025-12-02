@@ -60,11 +60,11 @@ export default function CapperAnalyticsPage() {
     }, [capperId])
 
     if (loading) {
-        return <div className="text-gray-500">Loading...</div>
+        return <div className="text-gray-700">Loading...</div>
     }
 
     if (!analytics) {
-        return <div className="text-gray-500">Capper not found</div>
+        return <div className="text-gray-700">Capper not found</div>
     }
 
     return (
@@ -85,7 +85,7 @@ export default function CapperAnalyticsPage() {
                 <div className="rounded-lg bg-white p-6 shadow">
                     <div className="flex items-center gap-2">
                         <TrendingUp className="h-5 w-5 text-green-600" />
-                        <h3 className="text-sm font-medium text-gray-500">Total Profit</h3>
+                        <h3 className="text-sm font-medium text-gray-700">Total Profit</h3>
                     </div>
                     <p className={`mt-2 text-3xl font-bold ${analytics.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {analytics.total_profit >= 0 ? '+' : ''}{analytics.total_profit}u
@@ -95,10 +95,10 @@ export default function CapperAnalyticsPage() {
                 <div className="rounded-lg bg-white p-6 shadow">
                     <div className="flex items-center gap-2">
                         <Trophy className="h-5 w-5 text-yellow-600" />
-                        <h3 className="text-sm font-medium text-gray-500">Win Rate</h3>
+                        <h3 className="text-sm font-medium text-gray-700">Win Rate</h3>
                     </div>
                     <p className="mt-2 text-3xl font-bold text-gray-900">{analytics.win_rate}%</p>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-700">
                         {analytics.wins}W - {analytics.losses}L - {analytics.pushes}P
                     </p>
                 </div>
@@ -106,13 +106,13 @@ export default function CapperAnalyticsPage() {
                 <div className="rounded-lg bg-white p-6 shadow">
                     <div className="flex items-center gap-2">
                         <Target className="h-5 w-5 text-blue-600" />
-                        <h3 className="text-sm font-medium text-gray-500">ROI</h3>
+                        <h3 className="text-sm font-medium text-gray-700">ROI</h3>
                     </div>
                     <p className="mt-2 text-3xl font-bold text-blue-600">{analytics.roi}%</p>
                 </div>
 
                 <div className="rounded-lg bg-white p-6 shadow">
-                    <h3 className="text-sm font-medium text-gray-500">Total Picks</h3>
+                    <h3 className="text-sm font-medium text-gray-700">Total Picks</h3>
                     <p className="mt-2 text-3xl font-bold text-gray-900">{analytics.total_picks}</p>
                     {analytics.pending > 0 && (
                         <p className="mt-1 text-sm text-yellow-600">{analytics.pending} pending</p>
@@ -166,22 +166,22 @@ export default function CapperAnalyticsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Date
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Sport
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Pick
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Units
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Result
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Profit
                                 </th>
                             </tr>
@@ -189,7 +189,7 @@ export default function CapperAnalyticsPage() {
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {analytics.recent_picks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-700">
                                         No picks yet
                                     </td>
                                 </tr>
@@ -210,16 +210,16 @@ export default function CapperAnalyticsPage() {
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm">
                                             <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${pick.result === 'WIN' ? 'bg-green-100 text-green-800' :
-                                                    pick.result === 'LOSS' ? 'bg-red-100 text-red-800' :
-                                                        pick.result === 'PUSH' ? 'bg-gray-100 text-gray-800' :
-                                                            'bg-yellow-100 text-yellow-800'
+                                                pick.result === 'LOSS' ? 'bg-red-100 text-red-800' :
+                                                    pick.result === 'PUSH' ? 'bg-gray-100 text-gray-800' :
+                                                        'bg-yellow-100 text-yellow-800'
                                                 }`}>
                                                 {pick.result}
                                             </span>
                                         </td>
                                         <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' :
-                                                pick.profit < 0 ? 'text-red-600' :
-                                                    'text-gray-900'
+                                            pick.profit < 0 ? 'text-red-600' :
+                                                'text-gray-900'
                                             }`}>
                                             {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
                                         </td>

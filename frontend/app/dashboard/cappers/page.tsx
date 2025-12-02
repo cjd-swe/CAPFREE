@@ -31,7 +31,7 @@ export default function CappersPage() {
     }, [])
 
     if (loading) {
-        return <div className="text-gray-500">Loading...</div>
+        return <div className="text-gray-700">Loading...</div>
     }
 
     return (
@@ -40,7 +40,7 @@ export default function CappersPage() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {cappers.length === 0 ? (
-                    <div className="col-span-full rounded-lg bg-white p-6 text-center text-gray-500 shadow">
+                    <div className="col-span-full rounded-lg bg-white p-6 text-center text-gray-700 shadow">
                         No cappers with picks yet
                     </div>
                 ) : (
@@ -55,24 +55,24 @@ export default function CappersPage() {
                                     <h3 className="text-xl font-semibold text-gray-900 group-hover:text-green-600">
                                         {capper.name}
                                     </h3>
-                                    <p className="mt-1 text-sm text-gray-500">{capper.total_picks} picks</p>
+                                    <p className="mt-1 text-sm text-gray-700">{capper.total_picks} picks</p>
                                 </div>
                                 <ArrowRight className="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-green-600" />
                             </div>
 
                             <div className="mt-4 grid grid-cols-3 gap-4">
                                 <div>
-                                    <p className="text-xs text-gray-500">Profit</p>
+                                    <p className="text-xs text-gray-700">Profit</p>
                                     <p className={`text-lg font-bold ${capper.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         {capper.profit >= 0 ? '+' : ''}{capper.profit}u
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500">Win Rate</p>
+                                    <p className="text-xs text-gray-700">Win Rate</p>
                                     <p className="text-lg font-bold text-gray-900">{capper.win_rate}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500">ROI</p>
+                                    <p className="text-xs text-gray-700">ROI</p>
                                     <p className="text-lg font-bold text-blue-600">{capper.roi}</p>
                                 </div>
                             </div>

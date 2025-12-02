@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle, XCircle, MinusCircle, Clock, Image as ImageIcon } from "lucide-react"
+import { CheckCircle, XCircle, MinusCircle, Clock, Image as ImageIcon, Trash2 } from "lucide-react"
 
 interface Capper {
     id: number
@@ -84,6 +84,25 @@ export default function PicksPage() {
         }
     }
 
+    const handleDeletePick = async (pickId: number) => {
+        if (!confirm("Are you sure you want to delete this pick?")) return
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/picks/${pickId}`, {
+                method: "DELETE",
+            })
+
+            if (response.ok) {
+                fetchPicks()
+            } else {
+                alert("Failed to delete pick")
+            }
+        } catch (err) {
+            console.error("Error deleting pick:", err)
+            alert("Error deleting pick")
+        }
+    }
+
     const getResultBadge = (result: string) => {
         switch (result) {
             case "WIN":
@@ -110,7 +129,7 @@ export default function PicksPage() {
         : picks.filter(p => p.result === selectedResult)
 
     if (loading) {
-        return <div className="text-gray-500">Loading...</div>
+        return <div className="text-gray-700">Loading...</div>
     }
 
     return (
@@ -156,31 +175,31 @@ export default function PicksPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Date
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Capper
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Sport
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Pick
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Units
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Odds
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Result
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Profit
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
                                     Actions
                                 </th>
                             </tr>
@@ -188,7 +207,7 @@ export default function PicksPage() {
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {filteredPicks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan={9} className="px-6 py-4 text-center text-gray-700">
                                         No picks found
                                     </td>
                                 </tr>
@@ -223,33 +242,40 @@ export default function PicksPage() {
                                             {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm">
-                                            {pick.result === "PENDING" ? (
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={() => gradePick(pick.id, "WIN")}
-                                                        className="rounded bg-green-100 p-1 text-green-600 hover:bg-green-200"
-                                                        title="Win"
-                                                    >
-                                                        <CheckCircle className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => gradePick(pick.id, "LOSS")}
-                                                        className="rounded bg-red-100 p-1 text-red-600 hover:bg-red-200"
-                                                        title="Loss"
-                                                    >
-                                                        <XCircle className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => gradePick(pick.id, "PUSH")}
-                                                        className="rounded bg-gray-100 p-1 text-gray-600 hover:bg-gray-200"
-                                                        title="Push"
-                                                    >
-                                                        <MinusCircle className="h-5 w-5" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400">Graded</span>
-                                            )}
+                                            <div className="flex gap-1">
+                                                {pick.result === "PENDING" && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => gradePick(pick.id, "WIN")}
+                                                            className="rounded bg-green-100 p-1 text-green-600 hover:bg-green-200"
+                                                            title="Win"
+                                                        >
+                                                            <CheckCircle className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => gradePick(pick.id, "LOSS")}
+                                                            className="rounded bg-red-100 p-1 text-red-600 hover:bg-red-200"
+                                                            title="Loss"
+                                                        >
+                                                            <XCircle className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => gradePick(pick.id, "PUSH")}
+                                                            className="rounded bg-gray-100 p-1 text-gray-600 hover:bg-gray-200"
+                                                            title="Push"
+                                                        >
+                                                            <MinusCircle className="h-5 w-5" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeletePick(pick.id)}
+                                                    className="rounded bg-red-50 p-1 text-red-600 hover:bg-red-100"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-5 w-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

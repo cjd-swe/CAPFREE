@@ -25,7 +25,7 @@ export default function AnalyticsPage() {
     }, [])
 
     if (loading) {
-        return <div className="text-gray-500">Loading analytics...</div>
+        return <div className="text-gray-700">Loading analytics...</div>
     }
 
     return (
@@ -86,24 +86,24 @@ export default function AnalyticsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Sport</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Record (W-L-P)</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Win Rate</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">ROI</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Record (W-L-P)</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Win Rate</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">ROI</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {sportPerformance.map((sport, index) => (
                                 <tr key={index}>
                                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{sport.name}</td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{sport.record}</td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{sport.win_rate}%</td>
-                                    <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${sport.roi > 0 ? 'text-green-600' : sport.roi < 0 ? 'text-red-600' : 'text-gray-500'
+                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{sport.record}</td>
+                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{sport.win_rate}%</td>
+                                    <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${sport.roi > 0 ? 'text-green-600' : sport.roi < 0 ? 'text-red-600' : 'text-gray-700'
                                         }`}>
                                         {sport.roi}%
                                     </td>
-                                    <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${sport.profit > 0 ? 'text-green-600' : sport.profit < 0 ? 'text-red-600' : 'text-gray-500'
+                                    <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${sport.profit > 0 ? 'text-green-600' : sport.profit < 0 ? 'text-red-600' : 'text-gray-700'
                                         }`}>
                                         {sport.profit > 0 ? '+' : ''}{sport.profit}u
                                     </td>
