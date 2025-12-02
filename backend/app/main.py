@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import picks, upload, telegram, analytics
+from .routers import picks, upload, telegram, analytics, settings
 
 app = FastAPI(title="SharpWatch API")
 
@@ -26,6 +26,7 @@ app.include_router(picks.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
 app.include_router(telegram.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")
 
 @app.get("/")
 async def root():

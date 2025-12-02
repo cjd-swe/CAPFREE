@@ -42,6 +42,31 @@ class PickUpdate(BaseModel):
     result: Optional[PickResult] = None
     profit: Optional[float] = None
 
+class PickGradeUpdate(BaseModel):
+    result: PickResult
+    # Profit will be calculated based on result, odds, and units_risked
+
+class CapperUpdate(BaseModel):
+    name: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+
+class CapperAnalytics(BaseModel):
+    id: int
+    name: str
+    total_picks: int
+    wins: int
+    losses: int
+    pushes: int
+    pending: int
+    win_rate: float
+    roi: float
+    total_profit: float
+    total_units_risked: float
+    recent_picks: List['Pick']
+    
+    class Config:
+        from_attributes = True
+
 class Pick(PickBase):
     id: int
     capper_id: int

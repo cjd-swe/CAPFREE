@@ -1,8 +1,9 @@
 import Link from "next/link"
-import { LayoutDashboard, Upload, BarChart3, Users, Settings } from "lucide-react"
+import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks } from "lucide-react"
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Picks", href: "/dashboard/picks", icon: ListChecks },
     { name: "Upload Picks", href: "/dashboard/upload", icon: Upload },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Cappers", href: "/dashboard/cappers", icon: Users },

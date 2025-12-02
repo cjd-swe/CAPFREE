@@ -1,0 +1,263 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { CheckCircle, XCircle, MinusCircle, Clock, Image as ImageIcon } from "lucide-react"
+
+interface Capper {
+    id: number
+    name: string
+}
+
+interface Pick {
+    id: number
+    capper_id: number
+    capper: Capper
+    date: string
+    sport: string
+    league: string | null
+    match_key: string | null
+    pick_text: string
+    units_risked: number
+    odds: number | null
+    result: "WIN" | "LOSS" | "PUSH" | "PENDING"
+    profit: number
+    original_image_path: string | null
+}
+
+export default function PicksPage() {
+    const [picks, setPicks] = useState<Pick[]>([])
+    const [cappers, setCappers] = useState<Capper[]>([])
+    const [loading, setLoading] = useState(true)
+    const [selectedCapper, setSelectedCapper] = useState<number | "all">("all")
+    const [selectedResult, setSelectedResult] = useState<string>("all")
+
+    useEffect(() => {
+        fetchCappers()
+        fetchPicks()
+    }, [])
+
+    useEffect(() => {
+        fetchPicks()
+    }, [selectedCapper])
+
+    const fetchCappers = async () => {
+        try {
+            const res = await fetch("http://localhost:8000/api/settings/cappers")
+            const data = await res.json()
+            setCappers(data)
+        } catch (err) {
+            console.error("Failed to fetch cappers:", err)
+        }
+    }
+
+    const fetchPicks = async () => {
+        try {
+            let url = "http://localhost:8000/api/picks/"
+            if (selectedCapper !== "all") {
+                url = `http://localhost:8000/api/picks/by-capper/${selectedCapper}`
+            }
+            const res = await fetch(url)
+            const data = await res.json()
+            setPicks(data)
+        } catch (err) {
+            console.error("Failed to fetch picks:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const gradePick = async (pickId: number, result: "WIN" | "LOSS" | "PUSH") => {
+        try {
+            const res = await fetch(`http://localhost:8000/api/picks/${pickId}/grade`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ result })
+            })
+            if (res.ok) {
+                fetchPicks()
+            } else {
+                alert("Failed to grade pick")
+            }
+        } catch (err) {
+            console.error("Failed to grade pick:", err)
+            alert("Failed to grade pick")
+        }
+    }
+
+    const getResultBadge = (result: string) => {
+        switch (result) {
+            case "WIN":
+                return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+                    <CheckCircle className="h-4 w-4" /> Win
+                </span>
+            case "LOSS":
+                return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800">
+                    <XCircle className="h-4 w-4" /> Loss
+                </span>
+            case "PUSH":
+                return <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+                    <MinusCircle className="h-4 w-4" /> Push
+                </span>
+            default:
+                return <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
+                    <Clock className="h-4 w-4" /> Pending
+                </span>
+        }
+    }
+
+    const filteredPicks = selectedResult === "all"
+        ? picks
+        : picks.filter(p => p.result === selectedResult)
+
+    if (loading) {
+        return <div className="text-gray-500">Loading...</div>
+    }
+
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">Picks</h1>
+
+            {/* Filters */}
+            <div className="flex gap-4 rounded-lg bg-white p-4 shadow">
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Filter by Capper</label>
+                    <select
+                        value={selectedCapper}
+                        onChange={(e) => setSelectedCapper(e.target.value === "all" ? "all" : Number(e.target.value))}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    >
+                        <option value="all">All Cappers</option>
+                        {cappers.map((capper) => (
+                            <option key={capper.id} value={capper.id}>
+                                {capper.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Filter by Result</label>
+                    <select
+                        value={selectedResult}
+                        onChange={(e) => setSelectedResult(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    >
+                        <option value="all">All Results</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="WIN">Win</option>
+                        <option value="LOSS">Loss</option>
+                        <option value="PUSH">Push</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Picks Table */}
+            <div className="rounded-lg bg-white shadow overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Date
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Capper
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Sport
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Pick
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Units
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Odds
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Result
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Profit
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                            {filteredPicks.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                                        No picks found
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPicks.map((pick) => (
+                                    <tr key={pick.id} className="hover:bg-gray-50">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                            {new Date(pick.date).toLocaleDateString()}
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                            {pick.capper.name}
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                            {pick.sport}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            <div className="max-w-xs">
+                                                {pick.match_key && <div className="font-medium">{pick.match_key}</div>}
+                                                <div className="text-gray-600">{pick.pick_text}</div>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                            {pick.units_risked}u
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                            {pick.odds ? (pick.odds > 0 ? `+${pick.odds}` : pick.odds) : "-"}
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                                            {getResultBadge(pick.result)}
+                                        </td>
+                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                            {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                                            {pick.result === "PENDING" ? (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => gradePick(pick.id, "WIN")}
+                                                        className="rounded bg-green-100 p-1 text-green-600 hover:bg-green-200"
+                                                        title="Win"
+                                                    >
+                                                        <CheckCircle className="h-5 w-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => gradePick(pick.id, "LOSS")}
+                                                        className="rounded bg-red-100 p-1 text-red-600 hover:bg-red-200"
+                                                        title="Loss"
+                                                    >
+                                                        <XCircle className="h-5 w-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => gradePick(pick.id, "PUSH")}
+                                                        className="rounded bg-gray-100 p-1 text-gray-600 hover:bg-gray-200"
+                                                        title="Push"
+                                                    >
+                                                        <MinusCircle className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">Graded</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    )
+}

@@ -13,8 +13,14 @@ interface SummaryStats {
 export default function DashboardPage() {
     const [stats, setStats] = useState<SummaryStats | null>(null)
     const [loading, setLoading] = useState(true)
+    const [recentPicks, setRecentPicks] = useState<any[]>([])
 
     useEffect(() => {
+        fetchStats()
+        fetchRecentPicks()
+    }, [])
+
+    const fetchStats = () => {
         fetch("http://localhost:8000/api/analytics/summary")
             .then((res) => res.json())
             .then((data) => {
@@ -25,7 +31,39 @@ export default function DashboardPage() {
                 console.error("Failed to fetch stats:", err)
                 setLoading(false)
             })
-    }, [])
+    }
+
+    const fetchRecentPicks = () => {
+        fetch("http://localhost:8000/api/picks/?limit=10")
+            .then((res) => res.json())
+            .then((data) => {
+                setRecentPicks(data)
+            })
+            .catch((err) => {
+                console.error("Failed to fetch recent picks:", err)
+            })
+    }
+
+    const handleDeletePick = async (pickId: number) => {
+        if (!confirm("Are you sure you want to delete this pick?")) return
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/picks/${pickId}`, {
+                method: "DELETE",
+            })
+
+            if (response.ok) {
+                // Refresh data
+                fetchStats()
+                fetchRecentPicks()
+            } else {
+                alert("Failed to delete pick")
+            }
+        } catch (err) {
+            console.error("Error deleting pick:", err)
+            alert("Error deleting pick")
+        }
+    }
 
     if (loading) {
         return <div className="text-gray-500">Loading...</div>
@@ -56,16 +94,67 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Recent Picks Table Placeholder */}
+            {/* Recent Picks Table */}
             <div className="rounded-lg bg-white shadow">
                 <div className="border-b border-gray-200 px-6 py-4">
                     <h2 className="text-lg font-medium text-gray-900">Recent Picks</h2>
                 </div>
-                <div className="p-6">
-                    {stats?.total_picks === 0 ? (
-                        <p className="text-gray-500">No picks yet. Upload a screenshot to get started.</p>
+                <div className="overflow-x-auto">
+                    {recentPicks.length === 0 ? (
+                        <div className="p-6 text-center text-gray-500">
+                            No picks yet. Upload a screenshot or add manually to get started.
+                        </div>
                     ) : (
-                        <p className="text-gray-500">{stats?.total_picks} picks tracked. View all in the Picks page.</p>
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Capper</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Sport</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Pick</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Result</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {recentPicks.map((pick) => (
+                                    <tr key={pick.id}>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                                            {new Date(pick.date).toLocaleDateString()}
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                            {pick.capper?.name || "Unknown"}
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{pick.sport}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{pick.pick_text}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${pick.result === 'WIN' ? 'bg-green-100 text-green-800' :
+                                                pick.result === 'LOSS' ? 'bg-red-100 text-red-800' :
+                                                    pick.result === 'PUSH' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {pick.result}
+                                            </span>
+                                        </td>
+                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' :
+                                            pick.profit < 0 ? 'text-red-600' :
+                                                'text-gray-500'
+                                            }`}>
+                                            {pick.profit > 0 ? '+' : ''}{pick.profit}u
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => handleDeletePick(pick.id)}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     )}
                 </div>
             </div>

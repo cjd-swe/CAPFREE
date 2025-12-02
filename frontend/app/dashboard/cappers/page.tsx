@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
-interface Capper {
+interface CapperStat {
     id: number
     name: string
     profit: number
@@ -12,7 +14,7 @@ interface Capper {
 }
 
 export default function CappersPage() {
-    const [cappers, setCappers] = useState<Capper[]>([])
+    const [cappers, setCappers] = useState<CapperStat[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -34,42 +36,49 @@ export default function CappersPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-900">Cappers Leaderboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Cappers</h1>
 
-            <div className="rounded-lg bg-white shadow">
-                <div className="border-b border-gray-200 px-6 py-4">
-                    <h2 className="text-lg font-medium text-gray-900">All Cappers</h2>
-                </div>
-                <div className="p-6">
-                    {cappers.length === 0 ? (
-                        <p className="text-gray-500">No cappers yet. Add some picks to get started.</p>
-                    ) : (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">ROI</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Win Rate</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Picks</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {cappers.map((capper) => (
-                                    <tr key={capper.id}>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{capper.name}</td>
-                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${capper.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ${capper.profit}
-                                        </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{capper.roi}</td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{capper.win_rate}</td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{capper.total_picks}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {cappers.length === 0 ? (
+                    <div className="col-span-full rounded-lg bg-white p-6 text-center text-gray-500 shadow">
+                        No cappers with picks yet
+                    </div>
+                ) : (
+                    cappers.map((capper) => (
+                        <Link
+                            key={capper.id}
+                            href={`/dashboard/cappers/${capper.id}`}
+                            className="group rounded-lg bg-white p-6 shadow transition-all hover:shadow-lg"
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-semibold text-gray-900 group-hover:text-green-600">
+                                        {capper.name}
+                                    </h3>
+                                    <p className="mt-1 text-sm text-gray-500">{capper.total_picks} picks</p>
+                                </div>
+                                <ArrowRight className="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-green-600" />
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-xs text-gray-500">Profit</p>
+                                    <p className={`text-lg font-bold ${capper.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {capper.profit >= 0 ? '+' : ''}{capper.profit}u
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Win Rate</p>
+                                    <p className="text-lg font-bold text-gray-900">{capper.win_rate}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">ROI</p>
+                                    <p className="text-lg font-bold text-blue-600">{capper.roi}</p>
+                                </div>
+                            </div>
+                        </Link>
+                    ))
+                )}
             </div>
         </div>
     )
