@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Upload, FileText, Check, AlertCircle, Plus } from "lucide-react"
+import { Upload, FileText, Check, AlertCircle, Plus, X } from "lucide-react"
 
 type TabType = "upload" | "manual"
 
@@ -14,10 +14,14 @@ export default function UploadPage() {
     const [activeTab, setActiveTab] = useState<TabType>("upload")
 
     // Upload state
-    const [file, setFile] = useState<File | null>(null)
+    const [files, setFiles] = useState<File[]>([])
+    const [isDragging, setIsDragging] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [picks, setPicks] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
+    const [selectedCapper, setSelectedCapper] = useState<string>("")
+    const [saving, setSaving] = useState(false)
+    const [saveSuccess, setSaveSuccess] = useState(false)
 
     // Manual entry state
     const [cappers, setCappers] = useState<Capper[]>([])
@@ -51,20 +55,54 @@ export default function UploadPage() {
     }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0])
+        if (e.target.files && e.target.files.length > 0) {
+            setFiles(prev => [...prev, ...Array.from(e.target.files || [])])
             setError(null)
         }
     }
 
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault()
+        setIsDragging(true)
+    }
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault()
+        setIsDragging(false)
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault()
+        setIsDragging(false)
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const droppedFiles = Array.from(e.dataTransfer.files).filter(
+                file => file.type.startsWith("image/")
+            )
+
+            if (droppedFiles.length > 0) {
+                setFiles(prev => [...prev, ...droppedFiles])
+                setError(null)
+            } else {
+                setError("Please upload image files only")
+            }
+        }
+    }
+
+    const removeFile = (index: number) => {
+        setFiles(prev => prev.filter((_, i) => i !== index))
+    }
+
     const handleUpload = async () => {
-        if (!file) return
+        if (files.length === 0) return
 
         setUploading(true)
         setError(null)
 
         const formData = new FormData()
-        formData.append("file", file)
+        files.forEach(file => {
+            formData.append("files", file)
+        })
 
         try {
             const response = await fetch("http://localhost:8000/api/upload/", {
@@ -79,7 +117,7 @@ export default function UploadPage() {
             const data = await response.json()
             setPicks(data)
         } catch (err) {
-            setError("Failed to upload and parse image. Please try again.")
+            setError("Failed to upload and parse images. Please try again.")
             console.error(err)
         } finally {
             setUploading(false)
@@ -155,6 +193,75 @@ export default function UploadPage() {
         }
     }
 
+    const handleSavePicks = async () => {
+        if (!selectedCapper) {
+            setError("Please select a capper")
+            return
+        }
+
+        if (picks.length === 0) {
+            setError("No picks to save")
+            return
+        }
+
+        setSaving(true)
+        setError(null)
+        setSaveSuccess(false)
+
+        try {
+            // Save each pick
+            const savePromises = picks.map(pick => {
+                const payload = {
+                    capper_name: selectedCapper,
+                    sport: pick.sport || "Unknown",
+                    league: pick.league || null,
+                    match_key: pick.match_key || null,
+                    pick_text: pick.pick_text,
+                    units_risked: pick.units_risked,
+                    odds: pick.odds || null,
+                    result: "PENDING",
+                    profit: 0.0,
+                    raw_text: pick.raw_text || null
+                }
+
+                return fetch("http://localhost:8000/api/picks/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                })
+            })
+
+            const responses = await Promise.all(savePromises)
+
+            // Check if all requests succeeded
+            const allSucceeded = responses.every(response => response.ok)
+
+            if (!allSucceeded) {
+                throw new Error("Some picks failed to save")
+            }
+
+            setSaveSuccess(true)
+
+            // Clear the picks and files after successful save
+            setPicks([])
+            setFiles([])
+            setSelectedCapper("")
+
+            // Refresh cappers list in case a new one was added
+            fetchCappers()
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSaveSuccess(false), 3000)
+        } catch (err) {
+            setError("Failed to save picks. Please try again.")
+            console.error(err)
+        } finally {
+            setSaving(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-gray-900">Add Picks</h1>
@@ -189,22 +296,50 @@ export default function UploadPage() {
             {activeTab === "upload" && (
                 <>
                     <div className="rounded-lg bg-white p-6 shadow">
-                        <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-12">
-                            <Upload className="h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-700">Upload a screenshot of your picks</p>
+                        <div
+                            className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed p-12 transition-colors ${isDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
+                                }`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
+                            <Upload className={`h-12 w-12 ${isDragging ? "text-green-500" : "text-gray-400"}`} />
+                            <p className="mt-2 text-sm text-gray-700">
+                                Drag and drop screenshots here, or click to select files
+                            </p>
                             <input
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={handleFileChange}
                                 className="mt-4"
                             />
-                            {file && (
+
+                            {/* File List */}
+                            {files.length > 0 && (
+                                <div className="mt-6 w-full max-w-md space-y-2">
+                                    <h4 className="text-sm font-medium text-gray-700">Selected Files:</h4>
+                                    {files.map((file, index) => (
+                                        <div key={index} className="flex items-center justify-between rounded bg-gray-50 p-2 text-sm">
+                                            <span className="truncate text-gray-600">{file.name}</span>
+                                            <button
+                                                onClick={() => removeFile(index)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {files.length > 0 && (
                                 <button
                                     onClick={handleUpload}
                                     disabled={uploading}
-                                    className="mt-4 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                    className="mt-6 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
                                 >
-                                    {uploading ? "Processing..." : "Extract Picks"}
+                                    {uploading ? "Processing..." : `Extract Picks from ${files.length} Image${files.length !== 1 ? 's' : ''}`}
                                 </button>
                             )}
                         </div>
@@ -223,6 +358,35 @@ export default function UploadPage() {
                                 <h2 className="text-lg font-medium text-gray-900">Extracted Picks</h2>
                             </div>
                             <div className="p-6">
+                                {/* Capper Selection */}
+                                <div className="mb-6">
+                                    <label htmlFor="upload-capper" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Select Capper <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="upload-capper"
+                                        list="upload-cappers-list"
+                                        value={selectedCapper}
+                                        onChange={(e) => setSelectedCapper(e.target.value)}
+                                        className="block w-full max-w-md rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                        placeholder="Select or type capper name"
+                                    />
+                                    <datalist id="upload-cappers-list">
+                                        {cappers.map(capper => (
+                                            <option key={capper.id} value={capper.name} />
+                                        ))}
+                                    </datalist>
+                                </div>
+
+                                {/* Success Message */}
+                                {saveSuccess && (
+                                    <div className="mb-4 flex items-center rounded-md bg-green-50 p-4 text-green-800">
+                                        <Check className="mr-2 h-5 w-5" />
+                                        Picks saved successfully!
+                                    </div>
+                                )}
+
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead>
                                         <tr>
@@ -243,8 +407,12 @@ export default function UploadPage() {
                                 </table>
 
                                 <div className="mt-6 flex justify-end">
-                                    <button className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                                        Save Picks
+                                    <button
+                                        onClick={handleSavePicks}
+                                        disabled={!selectedCapper || saving}
+                                        className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {saving ? "Saving..." : "Save Picks"}
                                     </button>
                                 </div>
                             </div>

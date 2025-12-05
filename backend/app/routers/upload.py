@@ -8,16 +8,20 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=List[Dict[str, Any]])
-async def upload_image(file: UploadFile = File(...)):
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
+async def upload_images(files: List[UploadFile] = File(...)):
+    all_picks = []
     
-    contents = await file.read()
+    for file in files:
+        if not file.content_type.startswith("image/"):
+            continue # Skip non-image files
+        
+        contents = await file.read()
+        
+        # Run OCR
+        raw_text = pipeline.extract_text(contents)
+        
+        # Parse picks
+        picks = parser.parse_picks(raw_text)
+        all_picks.extend(picks)
     
-    # Run OCR
-    raw_text = pipeline.extract_text(contents)
-    
-    # Parse picks
-    picks = parser.parse_picks(raw_text)
-    
-    return picks
+    return all_picks
