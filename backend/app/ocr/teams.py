@@ -228,6 +228,64 @@ SOCCER_TEAMS = {
     "INTER MIAMI": "Inter Miami",
 }
 
+# NCAAB Teams (major programs — expand as needed)
+NCAAB_TEAMS = {
+    "INDIANA": "Indiana Hoosiers",
+    "HOOSIERS": "Indiana Hoosiers",
+    "NORTHWESTERN": "Northwestern Wildcats",
+    "FLORIDA STATE": "Florida State Seminoles",
+    "SEMINOLES": "Florida State Seminoles",
+    "CALIFORNIA": "California Golden Bears",
+    "CLEMSON": "Clemson Tigers",
+    "WAKE FOREST": "Wake Forest Demon Deacons",
+    "DUKE": "Duke Blue Devils",
+    "NORTH CAROLINA": "North Carolina Tar Heels",
+    "UNC": "North Carolina Tar Heels",
+    "KENTUCKY": "Kentucky Wildcats",
+    "KANSAS": "Kansas Jayhawks",
+    "VILLANOVA": "Villanova Wildcats",
+    "GONZAGA": "Gonzaga Bulldogs",
+    "UCLA": "UCLA Bruins",
+    "MICHIGAN": "Michigan Wolverines",
+    "MICHIGAN STATE": "Michigan State Spartans",
+    "PURDUE": "Purdue Boilermakers",
+    "IOWA": "Iowa Hawkeyes",
+    "IOWA STATE": "Iowa State Cyclones",
+    "BAYLOR": "Baylor Bears",
+    "HOUSTON": "Houston Cougars",
+    "UCONN": "UConn Huskies",
+    "CONNECTICUT": "UConn Huskies",
+    "TENNESSEE": "Tennessee Volunteers",
+    "AUBURN": "Auburn Tigers",
+    "ALABAMA": "Alabama Crimson Tide",
+    "ARKANSAS": "Arkansas Razorbacks",
+    "OREGON": "Oregon Ducks",
+    "ARIZONA": "Arizona Wildcats",
+    "CREIGHTON": "Creighton Bluejays",
+    "MARQUETTE": "Marquette Golden Eagles",
+    "TEXAS": "Texas Longhorns",
+    "WISCONSIN": "Wisconsin Badgers",
+    "ILLINOIS": "Illinois Fighting Illini",
+    "OHIO STATE": "Ohio State Buckeyes",
+    "SYRACUSE": "Syracuse Orange",
+    "LOUISVILLE": "Louisville Cardinals",
+    "VIRGINIA": "Virginia Cavaliers",
+    "XAVIER": "Xavier Musketeers",
+    "ST JOHNS": "St. John's Red Storm",
+    "ST. JOHNS": "St. John's Red Storm",
+    "MEMPHIS": "Memphis Tigers",
+    "COLORADO": "Colorado Buffaloes",
+    "FLORIDA": "Florida Gators",
+    "PITTSBURGH": "Pittsburgh Panthers",
+    "MARYLAND": "Maryland Terrapins",
+    "GEORGIA": "Georgia Bulldogs",
+    "PENN STATE": "Penn State Nittany Lions",
+    "RUTGERS": "Rutgers Scarlet Knights",
+    "NEBRASKA": "Nebraska Cornhuskers",
+    "MINNESOTA": "Minnesota Golden Gophers",
+    "OKLAHOMA": "Oklahoma Sooners",
+}
+
 # League mapping
 LEAGUE_MAP = {
     **{team: ("NBA", "Basketball") for team in NBA_TEAMS},
@@ -235,6 +293,7 @@ LEAGUE_MAP = {
     **{team: ("MLB", "Baseball") for team in MLB_TEAMS},
     **{team: ("NHL", "Hockey") for team in NHL_TEAMS},
     **{team: ("Soccer", "Soccer") for team in SOCCER_TEAMS},
+    **{team: ("NCAAB", "Basketball") for team in NCAAB_TEAMS},
 }
 
 def detect_league_from_team(team_name: str) -> Tuple[Optional[str], Optional[str]]:
@@ -244,7 +303,10 @@ def detect_league_from_team(team_name: str) -> Tuple[Optional[str], Optional[str
     """
     # Normalize the team name
     team_upper = team_name.upper().strip()
-    
+
+    if not team_upper:
+        return None, None
+
     # Direct lookup
     if team_upper in LEAGUE_MAP:
         return LEAGUE_MAP[team_upper]
@@ -263,7 +325,7 @@ def get_full_team_name(team_name: str) -> Optional[str]:
     team_upper = team_name.upper().strip()
     
     # Check each league's team dictionary
-    for team_dict in [NBA_TEAMS, NFL_TEAMS, MLB_TEAMS, NHL_TEAMS, SOCCER_TEAMS]:
+    for team_dict in [NBA_TEAMS, NFL_TEAMS, MLB_TEAMS, NHL_TEAMS, SOCCER_TEAMS, NCAAB_TEAMS]:
         if team_upper in team_dict:
             return team_dict[team_upper]
         
