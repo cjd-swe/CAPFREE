@@ -20,6 +20,7 @@ export default function UploadPage() {
     const [picks, setPicks] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
     const [selectedCapper, setSelectedCapper] = useState<string>("")
+    const [capperAutoDetected, setCapperAutoDetected] = useState<boolean>(false)
     const [saving, setSaving] = useState(false)
     const [saveSuccess, setSaveSuccess] = useState(false)
 
@@ -115,7 +116,15 @@ export default function UploadPage() {
             }
 
             const data = await response.json()
-            setPicks(data)
+            setPicks(data.picks ?? data)
+
+            if (data.detected_capper) {
+                setSelectedCapper(data.detected_capper)
+                setCapperAutoDetected(true)
+            } else {
+                setSelectedCapper("")
+                setCapperAutoDetected(false)
+            }
         } catch (err) {
             setError("Failed to upload and parse images. Please try again.")
             console.error(err)
@@ -248,6 +257,7 @@ export default function UploadPage() {
             setPicks([])
             setFiles([])
             setSelectedCapper("")
+            setCapperAutoDetected(false)
 
             // Refresh cappers list in case a new one was added
             fetchCappers()
@@ -361,17 +371,44 @@ export default function UploadPage() {
                                 {/* Capper Selection */}
                                 <div className="mb-6">
                                     <label htmlFor="upload-capper" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Select Capper <span className="text-red-500">*</span>
+                                        Capper <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="upload-capper"
-                                        list="upload-cappers-list"
-                                        value={selectedCapper}
-                                        onChange={(e) => setSelectedCapper(e.target.value)}
-                                        className="block w-full max-w-md rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
-                                        placeholder="Select or type capper name"
-                                    />
+
+                                    {/* Warning banner when capper could not be detected */}
+                                    {!capperAutoDetected && (
+                                        <div className="mb-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                                            <span>
+                                                Could not detect the capper name from the image.
+                                                Please enter it below.
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="relative max-w-md">
+                                        <input
+                                            type="text"
+                                            id="upload-capper"
+                                            list="upload-cappers-list"
+                                            value={selectedCapper}
+                                            onChange={(e) => {
+                                                setSelectedCapper(e.target.value)
+                                                setCapperAutoDetected(false)
+                                            }}
+                                            className={`block w-full rounded-md px-3 py-2 shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 ${
+                                                capperAutoDetected
+                                                    ? "border border-green-400 bg-green-50 focus:border-green-500 focus:ring-green-500"
+                                                    : "border-2 border-amber-400 focus:border-amber-500 focus:ring-amber-400"
+                                            }`}
+                                            placeholder="Select or type capper name"
+                                        />
+                                        {capperAutoDetected && (
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                                <Check className="h-3 w-3" />
+                                                Auto-detected
+                                            </span>
+                                        )}
+                                    </div>
                                     <datalist id="upload-cappers-list">
                                         {cappers.map(capper => (
                                             <option key={capper.id} value={capper.name} />

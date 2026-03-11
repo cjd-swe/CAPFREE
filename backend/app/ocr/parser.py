@@ -3,6 +3,78 @@ from typing import List, Dict, Any, Optional, Tuple
 from .teams import detect_league_from_team, get_full_team_name
 
 
+# ── Capper name extraction ─────────────────────────────────────
+
+# Lines to skip when hunting for a capper name
+_CAPPER_SKIP_RE = re.compile(
+    r"(^\d{1,2}\s+\w+\s+\d{4}$"          # "11 March 2026"
+    r"|^\d{1,2}[/\.]\d{1,2}"              # "3/11" date prefix
+    r"|^@cappers"                          # @cappersfree watermarks
+    r"|minutes ago|hours ago"             # relative timestamps
+    r"|threads only|create thread"        # Telegram UI chrome
+    r"|^\s*$)",                            # blank
+    re.IGNORECASE,
+)
+
+# Tokens that are obviously not capper names
+_NOT_A_NAME_RE = re.compile(
+    r"^(ATP|NBA|NFL|NHL|MLB|NCAAB|VIP|POTD|MAX|EST|PM|AM|@\w+)$",
+    re.IGNORECASE,
+)
+
+# Looks like a time: "2:30PM", "10:00 PM EST"
+_TIMESTAMP_RE = re.compile(r"\d{1,2}:\d{2}", re.IGNORECASE)
+
+
+def extract_capper_name(raw_text: str) -> Optional[str]:
+    """
+    Try to extract the capper's name from the first few lines of OCR text.
+    Capper names appear at the top of Telegram screenshots — typically the
+    sender's display name — before any pick content.
+
+    Returns the best candidate string, or None if nothing looks reliable.
+    """
+    lines = raw_text.split('\n')
+
+    for line in lines[:10]:   # only look at the top of the image
+        line = line.strip()
+        if not line or len(line) < 2:
+            continue
+        if _CAPPER_SKIP_RE.search(line):
+            continue
+        if _TIMESTAMP_RE.search(line):
+            # Strip the timestamp portion and keep only the name part
+            line = _TIMESTAMP_RE.split(line)[0].strip()
+            if not line:
+                continue
+
+        # Strip leading OCR artifacts (icons, symbols)
+        cleaned = re.sub(r"^[^A-Za-z0-9]+", "", line)
+        # Strip everything after a # tag or trailing symbols
+        cleaned = re.sub(r"\s*#\w+.*$", "", cleaned).strip()
+        # Strip trailing non-alphanumeric
+        cleaned = re.sub(r"[^A-Za-z0-9]+$", "", cleaned).strip()
+
+        if not cleaned or len(cleaned) < 2:
+            continue
+
+        # Try each token in the line — return the first one that looks like a name
+        for token in cleaned.split():
+            # Skip single characters and purely numeric tokens
+            if len(token) < 2 or token.isdigit():
+                continue
+            # Skip known non-name tokens (league names, VIP, etc.)
+            if _NOT_A_NAME_RE.match(token):
+                continue
+            # Skip 2-letter all-caps tokens — likely icon/badge artifacts (e.g. "AC", "YD")
+            if len(token) == 2 and token.isupper():
+                continue
+
+            return token
+
+    return None
+
+
 # Lines that are noise / not picks
 # NOTE: POTD is NOT here — it appears at the end of valid pick lines ("Pick of the Day")
 SKIP_PATTERNS = re.compile(

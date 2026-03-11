@@ -1,5 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import List, Dict, Any
+from fastapi import APIRouter, UploadFile, File
+from typing import List, Dict, Any, Optional
 from ..ocr import pipeline, parser
 
 router = APIRouter(
@@ -7,21 +7,27 @@ router = APIRouter(
     tags=["upload"],
 )
 
-@router.post("/", response_model=List[Dict[str, Any]])
-async def upload_images(files: List[UploadFile] = File(...)):
-    all_picks = []
-    
+@router.post("/")
+async def upload_images(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
+    all_picks: List[Dict[str, Any]] = []
+    detected_capper: Optional[str] = None
+
     for file in files:
-        if not file.content_type.startswith("image/"):
-            continue # Skip non-image files
-        
+        if not file.content_type or not file.content_type.startswith("image/"):
+            continue
+
         contents = await file.read()
-        
-        # Run OCR
+
         raw_text = pipeline.extract_text(contents)
-        
-        # Parse picks
+
+        # Try to extract the capper name from the first image that yields one
+        if detected_capper is None:
+            detected_capper = parser.extract_capper_name(raw_text)
+
         picks = parser.parse_picks(raw_text)
         all_picks.extend(picks)
-    
-    return all_picks
+
+    return {
+        "picks": all_picks,
+        "detected_capper": detected_capper,
+    }
