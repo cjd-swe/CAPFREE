@@ -39,8 +39,8 @@ CAPFREE/
 │   │   ├── schemas.py           # Pydantic request/response schemas
 │   │   ├── ocr/
 │   │   │   ├── pipeline.py      # Image → raw OCR text (Tesseract)
-│   │   │   ├── parser.py        # Raw text → structured picks (regex)
-│   │   │   └── teams.py         # Team name → sport/league mapping (~200+ teams)
+│   │   │   ├── parser.py        # Raw text → structured picks (8 pattern matchers)
+│   │   │   └── teams.py         # Team name → sport/league mapping (250+ teams, 6 leagues)
 │   │   ├── routers/
 │   │   │   ├── picks.py         # Pick CRUD + grading endpoint
 │   │   │   ├── upload.py        # Image upload → OCR → parsed picks
@@ -49,6 +49,10 @@ CAPFREE/
 │   │   │   └── telegram.py      # Telegram webhook (skeleton)
 │   │   └── services/
 │   │       └── telegram_bot.py  # Telegram bot (skeleton)
+│   ├── tests/
+│   │   ├── test_parser.py       # 37 parser tests covering all pick formats
+│   │   ├── test_teams.py        # 14 team detection tests
+│   │   └── test_pipeline.py     # 7 OCR pipeline + end-to-end tests
 │   ├── alembic/                 # DB migration history
 │   ├── alembic.ini
 │   ├── requirements.txt
@@ -56,8 +60,8 @@ CAPFREE/
 │
 ├── frontend/
 │   ├── app/
-│   │   ├── page.tsx             # Root landing page
-│   │   ├── layout.tsx           # Root layout
+│   │   ├── page.tsx             # Redirects / → /dashboard
+│   │   ├── layout.tsx           # Root layout (title: "CAPFREE - Sports Picks Tracker")
 │   │   └── dashboard/
 │   │       ├── layout.tsx       # Sidebar layout wrapper
 │   │       ├── page.tsx         # Main dashboard (stats + recent picks)
@@ -161,13 +165,19 @@ Upload image(s)
     ↓
 pipeline.py  →  Tesseract OCR  →  raw text string
     ↓
-parser.py    →  regex patterns match pick formats:
-                  "Lakers -5.5 2u"
-                  "ChiefsML 1.5u"
-                  "Over 225.5 3u"
-                  "(LAKERS -3.5)"
+parser.py    →  context tracking (sport/units headers)
+             →  8 pattern matchers tried in order:
+                  1. Spread + opponent:  "Indiana -6.5 (-110) v. Northwestern 10u"
+                  2. Player prop:        "Kevin Durant O34.5 PRA -110 1u"
+                  3. Moneyline (ML):     "ChiefsML 1.5u"
+                  4. Moneyline (word):   "Capitals Moneyline"
+                  5. Over/Under:         "Clemson/Wake Forest Under 143"
+                  6. Simple spread:      "Lakers -5.5 2u"
+                  7. Parenthetical:      "(LAKERS -3.5)"
+                  8. Spread no units:    "Nuggets -5 Alternate Line"
     ↓
-teams.py     →  team name  →  (league, sport)
+teams.py     →  team/player name  →  (league, sport)
+             →  falls back to context sport if team unknown
     ↓
 Returns list of structured picks to frontend
     ↓
@@ -175,6 +185,10 @@ User assigns capper + reviews/edits picks
     ↓
 POST /api/picks for each pick  →  saved to DB
 ```
+
+**Context headers** — lines like `"NHL: 1 Unit (7:30 PM EST)"`, `"NBA: 1 Unit"`, `"3/11 nba plays"`, or `"Main Card: NCAAB & NBA"` set the active sport, league, and units for all picks that follow on subsequent lines.
+
+**Supported leagues:** NBA · NFL · MLB · NHL · NCAAB · Soccer (MLS/EPL/La Liga) · Tennis (ATP/WTA)
 
 **Profit Calculation (on grading):**
 - WIN with negative odds (e.g. -110): `profit = units * (100 / |odds|)`
@@ -209,12 +223,23 @@ npm run dev   # http://localhost:3000
 
 ---
 
+## Running Tests
+
+```bash
+cd backend
+source ../venv/bin/activate
+python -m pytest tests/ -v
+```
+
+63 tests across 3 files covering the parser, team detection, and OCR pipeline.
+
+---
+
 ## Known Issues / Incomplete Features
 
 - **Telegram bot** — Model and webhook route exist, but the bot has no message handlers implemented yet
 - **Image persistence** — `original_image_path` is stored but images are not saved to disk
 - **OCR preprocessing** — Grayscale/threshold preprocessing is commented out in `pipeline.py`; re-enabling it would improve accuracy on noisy images
-- **Root page** — `/` still shows Next.js boilerplate
 - **No authentication** — All routes are publicly accessible
 - **Hardcoded API URL** — Frontend fetches from `http://localhost:8000` (not environment-variable-driven)
 - **No data export** — No CSV/PDF export of picks or stats
@@ -224,9 +249,8 @@ npm run dev   # http://localhost:3000
 ## Roadmap
 
 - [ ] Implement Telegram bot to auto-ingest photos from group chats
-- [ ] Enable OCR preprocessing for better extraction quality
+- [ ] Enable OCR preprocessing for better extraction quality on low-contrast images
 - [ ] Persist uploaded images to disk with served static paths
 - [ ] Environment variable config for API URL
-- [ ] Replace root page with proper landing/redirect
 - [ ] Add CSV export for picks and analytics
 - [ ] Add authentication (even a simple API key or password gate)
