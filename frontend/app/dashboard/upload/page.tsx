@@ -202,6 +202,10 @@ export default function UploadPage() {
         }
     }
 
+    const handleRemovePick = (index: number) => {
+        setPicks(prev => prev.filter((_, i) => i !== index))
+    }
+
     const handleSavePicks = async () => {
         if (!selectedCapper) {
             setError("Please select a capper")
@@ -374,6 +378,13 @@ export default function UploadPage() {
                                         Capper <span className="text-red-500">*</span>
                                     </label>
 
+                                    {/* New capper notice */}
+                                    {selectedCapper && !cappers.some(c => c.name.toLowerCase() === selectedCapper.toLowerCase()) && (
+                                        <div className="mb-2 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                                            <span>New capper will be created: <strong>{selectedCapper}</strong></span>
+                                        </div>
+                                    )}
+
                                     {/* Warning banner when capper could not be detected */}
                                     {!capperAutoDetected && (
                                         <div className="mb-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -428,16 +439,30 @@ export default function UploadPage() {
                                     <thead>
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Units</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Raw Text</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Odds</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-700">Remove</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 bg-white">
                                         {picks.map((pick, index) => (
                                             <tr key={index}>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{pick.pick_text}</td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{pick.pick_text}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.sport || "—"}</td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.units_risked}u</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.raw_text}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+                                                    {pick.odds ? (pick.odds > 0 ? `+${pick.odds}` : pick.odds) : "—"}
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-right">
+                                                    <button
+                                                        onClick={() => handleRemovePick(index)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Remove pick"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
