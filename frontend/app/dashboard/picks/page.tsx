@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap } from "lucide-react"
+import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap, Download } from "lucide-react"
 
 interface Capper {
     id: number
@@ -192,6 +192,30 @@ export default function PicksPage() {
         return null
     }
 
+    const exportCSV = () => {
+        const headers = ["Date Added", "Game Date", "Capper", "Sport", "Pick", "Units", "Odds", "Result", "Profit", "Grade Source"]
+        const rows = filteredPicks.map(p => [
+            new Date(p.date).toLocaleDateString(),
+            p.game_date ? new Date(p.game_date).toLocaleDateString() : "",
+            p.capper.name,
+            p.sport,
+            `"${p.pick_text.replace(/"/g, '""')}"`,
+            p.units_risked,
+            p.odds ?? "",
+            p.result,
+            p.profit.toFixed(2),
+            p.grade_source ?? "",
+        ])
+        const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
+        const blob = new Blob([csv], { type: "text/csv" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `picks-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
     const pendingCount = picks.filter(p => p.result === "PENDING").length
 
     const filteredPicks = picks.filter(p => {
@@ -212,16 +236,25 @@ export default function PicksPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold text-gray-900">Picks</h1>
-                {pendingCount > 0 && (
+                <div className="flex items-center gap-2">
+                    {pendingCount > 0 && (
+                        <button
+                            onClick={handleAutoGrade}
+                            disabled={autoGrading}
+                            className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                        >
+                            <Zap className="h-4 w-4" />
+                            {autoGrading ? "Grading..." : `Auto-Grade Pending (${pendingCount})`}
+                        </button>
+                    )}
                     <button
-                        onClick={handleAutoGrade}
-                        disabled={autoGrading}
-                        className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                        onClick={exportCSV}
+                        className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
-                        <Zap className="h-4 w-4" />
-                        {autoGrading ? "Grading..." : `Auto-Grade Pending (${pendingCount})`}
+                        <Download className="h-4 w-4" />
+                        Export CSV
                     </button>
-                )}
+                </div>
             </div>
 
             {/* Auto-grade toast */}
