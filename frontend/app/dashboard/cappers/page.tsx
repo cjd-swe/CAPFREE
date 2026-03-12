@@ -17,9 +17,10 @@ interface CapperStat {
     losses: number
     pushes: number
     pending: number
+    current_streak: number
 }
 
-type SortKey = "name" | "total_picks" | "confirmed_win_rate" | "total_win_rate" | "roi" | "profit" | "pending"
+type SortKey = "name" | "total_picks" | "confirmed_win_rate" | "total_win_rate" | "roi" | "profit" | "pending" | "current_streak"
 
 export default function CappersPage() {
     const [cappers, setCappers] = useState<CapperStat[]>([])
@@ -102,6 +103,7 @@ export default function CappersPage() {
                                     <Th col="roi" label="ROI" />
                                     <Th col="profit" label="Profit" />
                                     <Th col="pending" label="Pending" />
+                                    <Th col="current_streak" label="Streak" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 bg-white">
@@ -139,6 +141,15 @@ export default function CappersPage() {
                                                 </span>
                                             ) : (
                                                 <span className="text-gray-400">—</span>
+                                            )}
+                                        </td>
+                                        <td className="whitespace-nowrap px-4 py-4 text-sm font-medium">
+                                            {capper.current_streak === 0 ? (
+                                                <span className="text-gray-400">—</span>
+                                            ) : capper.current_streak > 0 ? (
+                                                <span className="text-green-600">W{capper.current_streak}</span>
+                                            ) : (
+                                                <span className="text-red-500">L{Math.abs(capper.current_streak)}</span>
                                             )}
                                         </td>
                                     </tr>

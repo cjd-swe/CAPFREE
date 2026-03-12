@@ -87,6 +87,27 @@ async def get_cappers_stats(db: AsyncSession = Depends(database.get_db)):
         total_win_rate = (total_wins / graded_total * 100) if graded_total > 0 else 0
         roi = (total_profit / total_units * 100) if total_units > 0 else 0
 
+        # Current streak — walk backwards through graded picks
+        graded_picks = [p for p in picks if p.result in ("WIN", "LOSS", "PUSH")]
+        graded_picks.sort(key=lambda p: p.game_date or p.date, reverse=True)
+        streak = 0
+        streak_type = None
+        for p in graded_picks:
+            r = p.result
+            if streak_type is None:
+                streak_type = r
+            if r == streak_type:
+                streak += 1
+            else:
+                break
+        # Encode: positive = win streak, negative = loss streak, 0 = no picks
+        if streak_type == "WIN":
+            current_streak = streak
+        elif streak_type == "LOSS":
+            current_streak = -streak
+        else:
+            current_streak = 0  # PUSH streak — treat as neutral
+
         capper_stats.append({
             "id": capper.id,
             "name": capper.name,
@@ -100,6 +121,7 @@ async def get_cappers_stats(db: AsyncSession = Depends(database.get_db)):
             "losses": losses,
             "pushes": pushes,
             "pending": pending,
+            "current_streak": current_streak,
         })
 
     capper_stats.sort(key=lambda x: x["profit"], reverse=True)
