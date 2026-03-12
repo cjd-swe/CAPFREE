@@ -16,6 +16,7 @@ class Capper(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     telegram_chat_id = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     picks = relationship("Pick", back_populates="capper")

@@ -12,6 +12,7 @@ class PickResult(str, Enum):
 class CapperBase(BaseModel):
     name: str
     telegram_chat_id: Optional[str] = None
+    notes: Optional[str] = None
 
 class CapperCreate(CapperBase):
     pass
@@ -52,6 +53,7 @@ class PickGradeUpdate(BaseModel):
 class CapperUpdate(BaseModel):
     name: Optional[str] = None
     telegram_chat_id: Optional[str] = None
+    notes: Optional[str] = None
 
 class CapperAnalytics(BaseModel):
     id: int

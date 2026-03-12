@@ -28,6 +28,7 @@ interface SportPerformance {
 interface CapperAnalytics {
     id: number
     name: string
+    notes: string | null
     total_picks: number
     wins: number
     losses: number
@@ -78,6 +79,9 @@ export default function CapperAnalyticsPage() {
     const [analytics, setAnalytics] = useState<CapperAnalytics | null>(null)
     const [profitHistory, setProfitHistory] = useState<ProfitHistoryEntry[]>([])
     const [loading, setLoading] = useState(true)
+    const [notes, setNotes] = useState("")
+    const [editingNotes, setEditingNotes] = useState(false)
+    const [savingNotes, setSavingNotes] = useState(false)
 
     useEffect(() => {
         Promise.all([
@@ -85,10 +89,25 @@ export default function CapperAnalyticsPage() {
             fetch(`http://localhost:8000/api/analytics/capper/${capperId}/profit-history`).then(r => r.json()),
         ]).then(([analyticsData, historyData]) => {
             setAnalytics(analyticsData)
+            setNotes(analyticsData.notes ?? "")
             setProfitHistory(historyData)
             setLoading(false)
         }).catch(() => setLoading(false))
     }, [capperId])
+
+    const saveNotes = async () => {
+        setSavingNotes(true)
+        try {
+            await fetch(`http://localhost:8000/api/settings/cappers/${capperId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ notes }),
+            })
+            setEditingNotes(false)
+        } finally {
+            setSavingNotes(false)
+        }
+    }
 
     if (loading) return <div className="text-gray-700">Loading...</div>
     if (!analytics) return <div className="text-gray-700">Capper not found</div>
@@ -141,6 +160,34 @@ export default function CapperAnalyticsPage() {
                         <p className="mt-1 text-sm text-yellow-600">{analytics.pending} pending</p>
                     )}
                 </div>
+            </div>
+
+            {/* Notes */}
+            <div className="rounded-lg bg-white shadow p-6">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-medium text-gray-900">Notes</h2>
+                    {!editingNotes ? (
+                        <button onClick={() => setEditingNotes(true)} className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1">Edit</button>
+                    ) : (
+                        <div className="flex gap-2">
+                            <button onClick={saveNotes} disabled={savingNotes} className="text-xs bg-green-600 text-white rounded px-3 py-1 hover:bg-green-700 disabled:opacity-50">Save</button>
+                            <button onClick={() => { setNotes(analytics.notes ?? ""); setEditingNotes(false) }} className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1">Cancel</button>
+                        </div>
+                    )}
+                </div>
+                {editingNotes ? (
+                    <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        rows={4}
+                        placeholder="Add notes about this capper's style, track record, specialties..."
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500 resize-none"
+                    />
+                ) : (
+                    <p className={`text-sm ${notes ? "text-gray-700 whitespace-pre-wrap" : "text-gray-400 italic"}`}>
+                        {notes || "No notes yet. Click Edit to add some."}
+                    </p>
+                )}
             </div>
 
             {/* Period Breakdown */}

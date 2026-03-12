@@ -179,6 +179,7 @@ async def get_capper_analytics(capper_id: int, db: AsyncSession = Depends(databa
     return {
         "id": capper.id,
         "name": capper.name,
+        "notes": capper.notes,
         "total_picks": total_picks,
         "wins": wins,
         "losses": losses,
