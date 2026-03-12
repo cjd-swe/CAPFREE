@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronUp, ChevronDown, GitCompare } from "lucide-react"
 
 interface CapperStat {
     id: number
@@ -85,7 +85,12 @@ export default function CappersPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-900">Cappers</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-900">Cappers</h1>
+                <Link href="/dashboard/cappers/compare" className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                    <GitCompare className="h-4 w-4" /> Compare
+                </Link>
+            </div>
 
             <div className="rounded-lg bg-white shadow overflow-hidden">
                 {cappers.length === 0 ? (
