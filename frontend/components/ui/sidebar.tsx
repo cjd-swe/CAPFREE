@@ -27,13 +27,26 @@ export function Sidebar() {
     const [pendingCount, setPendingCount] = useState(0)
     const [bellOpen, setBellOpen] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
+    const [popupNotifs, setPopupNotifs] = useState<Notification[]>([])
     const bellRef = useRef<HTMLDivElement>(null)
+    const prevUnreadRef = useRef<number | null>(null)
 
-    const fetchCounts = () => {
-        fetch("http://localhost:8000/api/notifications/unread-count")
-            .then(res => res.json())
-            .then(data => setUnreadCount(data.count || 0))
-            .catch(() => {})
+    const fetchCounts = async () => {
+        try {
+            const res = await fetch("http://localhost:8000/api/notifications/unread-count")
+            const data = await res.json()
+            const newCount: number = data.count || 0
+
+            // If count went up since last poll, fetch the new unread notifications for popup
+            if (prevUnreadRef.current !== null && newCount > prevUnreadRef.current) {
+                const notifRes = await fetch("http://localhost:8000/api/notifications/")
+                const allNotifs: Notification[] = await notifRes.json()
+                const fresh = allNotifs.filter(n => !n.read)
+                if (fresh.length > 0) setPopupNotifs(fresh)
+            }
+            prevUnreadRef.current = newCount
+            setUnreadCount(newCount)
+        } catch {}
 
         fetch("http://localhost:8000/api/analytics/summary")
             .then(res => res.json())
@@ -48,9 +61,16 @@ export function Sidebar() {
             .catch(() => {})
     }
 
+    const dismissPopup = async () => {
+        await fetch("http://localhost:8000/api/notifications/read-all", { method: "POST" })
+        setPopupNotifs([])
+        setUnreadCount(0)
+        prevUnreadRef.current = 0
+    }
+
     useEffect(() => {
         fetchCounts()
-        const interval = setInterval(fetchCounts, 30000)
+        const interval = setInterval(fetchCounts, 15000)
         return () => clearInterval(interval)
     }, [])
 
@@ -163,6 +183,36 @@ export function Sidebar() {
                     )}
                 </div>
             </div>
+
+            {/* Telegram notification popup — must be manually dismissed */}
+            {popupNotifs.length > 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+                    <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden mx-4">
+                        <div className="flex items-center gap-3 px-5 py-4 bg-green-50 border-b border-green-100">
+                            <Bell className="h-5 w-5 text-green-600 flex-shrink-0" />
+                            <span className="font-semibold text-green-900">
+                                {popupNotifs.length === 1 ? "New pick received" : `${popupNotifs.length} new picks received`}
+                            </span>
+                        </div>
+                        <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                            {popupNotifs.map(n => (
+                                <li key={n.id} className="px-5 py-3">
+                                    <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
+                                    <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.created_at)}</p>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={dismissPopup}
+                                className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <nav className="flex-1 space-y-1 px-2 py-4">
                 {navigation.map((item) => {
