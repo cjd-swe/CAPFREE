@@ -99,13 +99,13 @@ const SPORT_COLORS = [
 function winRateColor(rate: number) {
     if (rate > 55) return "text-green-600"
     if (rate < 50) return "text-red-500"
-    return "text-gray-700"
+    return "text-slate-700"
 }
 
 function profitColor(val: number) {
     if (val > 0) return "text-green-600"
     if (val < 0) return "text-red-500"
-    return "text-gray-700"
+    return "text-slate-700"
 }
 
 function fmtProfit(val: number) {
@@ -115,8 +115,8 @@ function fmtProfit(val: number) {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-2 shadow-lg text-xs">
-            <p className="font-medium text-gray-700 mb-1">{label}</p>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg text-xs">
+            <p className="font-medium text-slate-700 mb-1">{label}</p>
             {payload.map((p: any) => (
                 <p key={p.dataKey} style={{ color: p.color }}>
                     {p.name}: {p.value > 0 ? "+" : ""}{p.value.toFixed(2)}u
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
 
     if (loading) {
         return (
-            <div className="flex h-64 items-center justify-center text-gray-400 text-sm">
+            <div className="flex h-64 items-center justify-center text-slate-500 text-sm">
                 Loading analytics...
             </div>
         )
@@ -258,35 +258,35 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
             {/* Header + Capper Selector */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
 
                 <div className="flex items-center gap-3">
                     {/* Capper Selector */}
                     <div className="relative">
                         <button
                             onClick={() => setDropdownOpen(v => !v)}
-                            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
                         >
                             {selectedId === "all" ? "All Cappers" : selectedCapper?.name ?? "Select Capper"}
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                            <ChevronDown className="h-4 w-4 text-slate-500" />
                         </button>
                         {dropdownOpen && (
-                            <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-gray-100 bg-white shadow-xl">
+                            <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-slate-200 bg-white shadow-xl">
                                 <button
                                     onClick={() => { setSelectedId("all"); setDropdownOpen(false) }}
-                                    className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 ${selectedId === "all" ? "font-semibold text-green-600" : "text-gray-700"}`}
+                                    className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${selectedId === "all" ? "font-semibold text-green-600" : "text-slate-700"}`}
                                 >
                                     All Cappers
                                 </button>
-                                <div className="border-t border-gray-100" />
+                                <div className="border-t border-slate-200" />
                                 {cappers.map(c => (
                                     <button
                                         key={c.id}
                                         onClick={() => { setSelectedId(c.id); setDropdownOpen(false) }}
-                                        className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 ${selectedId === c.id ? "font-semibold text-green-600" : "text-gray-700"}`}
+                                        className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${selectedId === c.id ? "font-semibold text-green-600" : "text-slate-700"}`}
                                     >
                                         <span>{c.name}</span>
-                                        <span className="ml-2 text-xs text-gray-400">{c.total_picks} picks</span>
+                                        <span className="ml-2 text-xs text-slate-500">{c.total_picks} picks</span>
                                     </button>
                                 ))}
                             </div>
@@ -294,12 +294,12 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Time Range */}
-                    <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
+                    <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden">
                         {[7, 30, 90].map(d => (
                             <button
                                 key={d}
                                 onClick={() => setDays(d)}
-                                className={`px-3 py-2 text-sm font-medium transition-colors ${days === d ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                                className={`px-3 py-2 text-sm font-medium transition-colors ${days === d ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}
                             >
                                 {d}d
                             </button>
@@ -311,36 +311,36 @@ export default function AnalyticsPage() {
             {/* Stats Strip */}
             {statsStrip && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">Profit</p>
+                    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">Profit</p>
                         <p className={`mt-1 text-2xl font-bold ${profitColor(statsStrip.profit)}`}>
                             {fmtProfit(statsStrip.profit)}
                         </p>
                     </div>
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">Win Rate</p>
+                    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">Win Rate</p>
                         <p className={`mt-1 text-2xl font-bold ${winRateColor(statsStrip.win_rate)}`}>
                             {statsStrip.win_rate.toFixed(1)}%
                         </p>
                     </div>
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">ROI</p>
+                    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">ROI</p>
                         <p className={`mt-1 text-2xl font-bold ${profitColor(statsStrip.roi)}`}>
                             {statsStrip.roi > 0 ? "+" : ""}{statsStrip.roi.toFixed(1)}%
                         </p>
                     </div>
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">Picks</p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">{statsStrip.total_picks}</p>
+                    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">Picks</p>
+                        <p className="mt-1 text-2xl font-bold text-slate-900">{statsStrip.total_picks}</p>
                         {statsStrip.wins !== null && (
-                            <p className="text-xs text-gray-400 mt-0.5">{statsStrip.wins}W · {statsStrip.losses}L</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{statsStrip.wins}W · {statsStrip.losses}L</p>
                         )}
                     </div>
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">Pending</p>
+                    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">Pending</p>
                         <p className="mt-1 text-2xl font-bold text-amber-500">{statsStrip.pending}</p>
                         {statsStrip.pending > 0 && (
-                            <Link href="/dashboard/picks" className="text-xs text-gray-400 hover:text-green-600 mt-0.5 block">
+                            <Link href="/dashboard/picks" className="text-xs text-slate-500 hover:text-green-600 mt-0.5 block">
                                 Grade now →
                             </Link>
                         )}
@@ -349,16 +349,16 @@ export default function AnalyticsPage() {
             )}
 
             {/* Main Chart: Cumulative Profit */}
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
+            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-900">
+                    <h2 className="font-semibold text-slate-900">
                         Cumulative Profit
-                        <span className="ml-2 text-sm font-normal text-gray-400">
+                        <span className="ml-2 text-sm font-normal text-slate-500">
                             {selectedId === "all" ? `Last ${days} days` : `Last ${days} days · ${selectedCapper?.name}`}
                         </span>
                     </h2>
                     {selectedId !== "all" && filteredHistory.length === 0 && (
-                        <span className="text-sm text-gray-400">No graded picks in window</span>
+                        <span className="text-sm text-slate-500">No graded picks in window</span>
                     )}
                 </div>
                 <div className="h-64">
@@ -400,13 +400,13 @@ export default function AnalyticsPage() {
             {/* Sport Breakdown + Per-Pick Chart */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* Sport Performance Bar */}
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                    <h2 className="mb-4 font-semibold text-gray-900">
+                <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+                    <h2 className="mb-4 font-semibold text-slate-900">
                         Profit by Sport
-                        {selectedId !== "all" && <span className="ml-2 text-sm font-normal text-gray-400">{selectedCapper?.name}</span>}
+                        {selectedId !== "all" && <span className="ml-2 text-sm font-normal text-slate-500">{selectedCapper?.name}</span>}
                     </h2>
                     {sportChartData.length === 0 ? (
-                        <div className="flex h-48 items-center justify-center text-sm text-gray-400">No data</div>
+                        <div className="flex h-48 items-center justify-center text-sm text-slate-500">No data</div>
                     ) : (
                         <div className="h-48">
                             <ResponsiveContainer width="100%" height="100%">
@@ -428,8 +428,8 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Daily picks profit (per-pick for capper, daily bars for all) */}
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                    <h2 className="mb-4 font-semibold text-gray-900">
+                <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+                    <h2 className="mb-4 font-semibold text-slate-900">
                         {selectedId === "all" ? `Daily Profit · Last ${days} days` : `Pick Results · ${selectedCapper?.name}`}
                     </h2>
                     {selectedId === "all" ? (
@@ -472,34 +472,34 @@ export default function AnalyticsPage() {
 
             {/* Sport Stats Table */}
             {sportChartData.length > 0 && (
-                <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="font-semibold text-gray-900">
+                <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-200">
+                        <h2 className="font-semibold text-slate-900">
                             Performance by Sport
-                            {selectedId !== "all" && <span className="ml-2 text-sm font-normal text-gray-400">{selectedCapper?.name}</span>}
+                            {selectedId !== "all" && <span className="ml-2 text-sm font-normal text-slate-500">{selectedCapper?.name}</span>}
                         </h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-100">
+                            <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Sport</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Record</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Win Rate</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Sport</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Record</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Win Rate</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Profit</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 bg-white">
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {sportChartData.map((s, i) => (
-                                    <tr key={i} className="hover:bg-gray-50">
-                                        <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-gray-900">
+                                    <tr key={i} className="hover:bg-slate-50">
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-slate-900">
                                             <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
                                             {s.name}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-gray-600">{s.record}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-600">{s.record}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-1.5 rounded-full bg-gray-100 min-w-[60px] max-w-[100px]">
+                                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 min-w-[60px] max-w-[100px]">
                                                     <div
                                                         className="h-1.5 rounded-full"
                                                         style={{
@@ -526,39 +526,39 @@ export default function AnalyticsPage() {
 
             {/* Capper-specific: Recent Picks */}
             {selectedId !== "all" && capperDetail && capperDetail.recent_picks.length > 0 && (
-                <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-semibold text-gray-900">Recent Picks · {capperDetail.name}</h2>
+                <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <h2 className="font-semibold text-slate-900">Recent Picks · {capperDetail.name}</h2>
                         <Link href={`/dashboard/cappers/${capperDetail.id}`} className="text-sm text-green-600 hover:underline">
                             Full profile →
                         </Link>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-100">
+                            <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Pick</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Sport</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Units</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Odds</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Result</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Pick</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Sport</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Units</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Odds</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Result</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Profit</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 bg-white">
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {capperDetail.recent_picks.map((pick, i) => (
-                                    <tr key={i} className="hover:bg-gray-50">
-                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-gray-400">
+                                    <tr key={i} className="hover:bg-slate-50">
+                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">
                                             {pick.game_date
                                                 ? new Date(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                                                 : new Date(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                                             }
                                         </td>
-                                        <td className="px-6 py-3 text-sm text-gray-800 max-w-xs">{pick.pick_text}</td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-gray-500">{pick.sport}</td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-gray-500">{pick.units_risked}u</td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-gray-500">
+                                        <td className="px-6 py-3 text-sm text-slate-800 max-w-xs">{pick.pick_text}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">{pick.sport}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">{pick.units_risked}u</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">
                                             {pick.odds ? (pick.odds > 0 ? `+${pick.odds}` : pick.odds) : "—"}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-3">
@@ -573,7 +573,7 @@ export default function AnalyticsPage() {
                                                 <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Loss</span>
                                             )}
                                             {pick.result === "PUSH" && (
-                                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Push</span>
+                                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Push</span>
                                             )}
                                             {pick.result === "PENDING" && (
                                                 <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Pending</span>
@@ -592,34 +592,34 @@ export default function AnalyticsPage() {
 
             {/* All Cappers overview table */}
             {selectedId === "all" && cappers.length > 0 && (
-                <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="font-semibold text-gray-900">All Cappers Overview</h2>
+                <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-200">
+                        <h2 className="font-semibold text-slate-900">All Cappers Overview</h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-100">
+                            <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Capper</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Picks</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Record</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Win Rate</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">ROI</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Pending</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Capper</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Picks</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Record</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Win Rate</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">ROI</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Pending</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Profit</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 bg-white">
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {cappers.map((c) => (
-                                    <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedId(c.id)}>
-                                        <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-gray-900 hover:text-green-600">
+                                    <tr key={c.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setSelectedId(c.id)}>
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-slate-900 hover:text-green-600">
                                             {c.name}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-gray-600">{c.total_picks}</td>
-                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-gray-600">{c.wins}-{c.losses}-{c.pushes}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-600">{c.total_picks}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-600">{c.wins}-{c.losses}-{c.pushes}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-1.5 rounded-full bg-gray-100 min-w-[60px] max-w-[100px]">
+                                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 min-w-[60px] max-w-[100px]">
                                                     <div
                                                         className="h-1.5 rounded-full"
                                                         style={{

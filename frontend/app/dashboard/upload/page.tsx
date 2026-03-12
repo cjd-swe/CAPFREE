@@ -317,35 +317,35 @@ export default function UploadPage() {
             {errorModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-                        <div className="flex items-start gap-4 border-b border-gray-100 p-6">
+                        <div className="flex items-start gap-4 border-b border-slate-200 p-6">
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                                 <AlertCircle className="h-6 w-6 text-red-600" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900">{errorModal.title}</h3>
-                                <p className="mt-1 text-sm text-gray-600">{errorModal.message}</p>
+                                <h3 className="text-lg font-semibold text-slate-900">{errorModal.title}</h3>
+                                <p className="mt-1 text-sm text-slate-600">{errorModal.message}</p>
                             </div>
-                            <button onClick={() => setErrorModal(null)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                            <button onClick={() => setErrorModal(null)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-600">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                         {errorModal.rawText && (
                             <div className="p-6">
-                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     What OCR extracted from your image
                                 </p>
-                                <pre className="max-h-48 overflow-y-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words border border-gray-200">
+                                <pre className="max-h-48 overflow-y-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-700 whitespace-pre-wrap break-words border border-slate-200">
                                     {errorModal.rawText.trim() || "(nothing — image may be unreadable or blank)"}
                                 </pre>
-                                <p className="mt-2 text-xs text-gray-400">
+                                <p className="mt-2 text-xs text-slate-500">
                                     If the text above looks correct but picks weren&apos;t detected, the format may not be recognised. Try a clearer screenshot.
                                 </p>
                             </div>
                         )}
-                        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
                             <button
                                 onClick={() => setErrorModal(null)}
-                                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
                             >
                                 Got it
                             </button>
@@ -354,16 +354,16 @@ export default function UploadPage() {
                 </div>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-900">Add Picks</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Add Picks</h1>
 
             {/* Tab Navigation */}
-            <div className="border-b border-gray-200">
+            <div className="border-b border-slate-200">
                 <nav className="-mb-px flex space-x-8">
                     <button
                         onClick={() => setActiveTab("upload")}
                         className={`${activeTab === "upload"
                             ? "border-green-500 text-green-600"
-                            : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800"
+                            : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-800"
                             } flex items-center whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
                     >
                         <Upload className="mr-2 h-5 w-5" />
@@ -373,7 +373,7 @@ export default function UploadPage() {
                         onClick={() => setActiveTab("manual")}
                         className={`${activeTab === "manual"
                             ? "border-green-500 text-green-600"
-                            : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800"
+                            : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-800"
                             } flex items-center whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
                     >
                         <Plus className="mr-2 h-5 w-5" />
@@ -401,7 +401,7 @@ export default function UploadPage() {
                             className={`relative rounded-xl border-2 border-dashed transition-all duration-150 ${
                                 isDragging
                                     ? "border-green-500 bg-green-50 scale-[1.01]"
-                                    : "border-gray-300 hover:border-green-400 hover:bg-gray-50"
+                                    : "border-slate-300 hover:border-green-400 hover:bg-slate-50"
                             }`}
                             onDragEnter={handleDragEnter}
                             onDragOver={handleDragOver}
@@ -424,15 +424,15 @@ export default function UploadPage() {
                                     onClick={() => fileInputRef.current?.click()}
                                     className="flex w-full flex-col items-center justify-center gap-3 p-16 text-center focus:outline-none"
                                 >
-                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                                        <Upload className="h-8 w-8 text-gray-400" />
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                                        <Upload className="h-8 w-8 text-slate-500" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-700">
+                                        <p className="text-sm font-medium text-slate-700">
                                             Drop screenshots here, or{" "}
                                             <span className="text-green-600 underline underline-offset-2">browse</span>
                                         </p>
-                                        <p className="mt-1 text-xs text-gray-400">PNG, JPG, WEBP — multiple files supported</p>
+                                        <p className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP — multiple files supported</p>
                                     </div>
                                 </button>
                             ) : (
@@ -440,7 +440,7 @@ export default function UploadPage() {
                                 <div className="p-4">
                                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                                         {files.map((file, index) => (
-                                            <div key={index} className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                                            <div key={index} className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img
                                                     src={URL.createObjectURL(file)}
@@ -463,14 +463,14 @@ export default function UploadPage() {
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-500 transition-colors"
+                                            className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-slate-200 text-slate-500 hover:border-green-400 hover:text-green-500 transition-colors"
                                         >
                                             <Plus className="h-6 w-6" />
                                         </button>
                                     </div>
 
                                     <div className="mt-4 flex items-center justify-between">
-                                        <p className="text-sm text-gray-500">{files.length} image{files.length !== 1 ? "s" : ""} selected</p>
+                                        <p className="text-sm text-slate-500">{files.length} image{files.length !== 1 ? "s" : ""} selected</p>
                                         <button
                                             onClick={handleUpload}
                                             disabled={uploading}
@@ -487,13 +487,13 @@ export default function UploadPage() {
 
                     {picks.length > 0 && (
                         <div className="rounded-lg bg-white shadow">
-                            <div className="border-b border-gray-200 px-6 py-4">
-                                <h2 className="text-lg font-medium text-gray-900">Extracted Picks</h2>
+                            <div className="border-b border-slate-200 px-6 py-4">
+                                <h2 className="text-lg font-medium text-slate-900">Extracted Picks</h2>
                             </div>
                             <div className="p-6">
                                 {/* Capper Selection */}
                                 <div className="mb-6">
-                                    <label htmlFor="upload-capper" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="upload-capper" className="block text-sm font-medium text-slate-700 mb-2">
                                         Capper <span className="text-red-500">*</span>
                                     </label>
 
@@ -548,16 +548,16 @@ export default function UploadPage() {
 
                                 {/* Game Date */}
                                 <div className="mb-6">
-                                    <label htmlFor="upload-game-date" className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label htmlFor="upload-game-date" className="block text-sm font-medium text-slate-700 mb-1">
                                         Game Date
-                                        <span className="ml-1.5 text-xs font-normal text-gray-400">(used for ESPN auto-grading)</span>
+                                        <span className="ml-1.5 text-xs font-normal text-slate-500">(used for ESPN auto-grading)</span>
                                     </label>
                                     <input
                                         type="date"
                                         id="upload-game-date"
                                         value={gameDate}
                                         onChange={e => setGameDate(e.target.value)}
-                                        className="block w-48 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                        className="block w-48 rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                                     />
                                 </div>
 
@@ -569,23 +569,23 @@ export default function UploadPage() {
                                     </div>
                                 )}
 
-                                <table className="min-w-full divide-y divide-gray-200">
+                                <table className="min-w-full divide-y divide-slate-200">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Units</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Odds</th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-700">Remove</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Pick</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Sport</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Units</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Odds</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-700">Remove</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                    <tbody className="divide-y divide-slate-200 bg-white">
                                         {picks.map((pick, index) => (
                                             <tr key={index}>
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{pick.pick_text}</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.sport || "—"}</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">{pick.units_risked}u</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+                                                <td className="px-6 py-4 text-sm font-medium text-slate-900">{pick.pick_text}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">{pick.sport || "—"}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">{pick.units_risked}u</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
                                                     {pick.odds ? (pick.odds > 0 ? `+${pick.odds}` : pick.odds) : "—"}
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -623,7 +623,7 @@ export default function UploadPage() {
                     <form onSubmit={handleManualSubmit} className="space-y-6">
                         {/* Capper Selection */}
                         <div>
-                            <label htmlFor="capper_name" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="capper_name" className="block text-sm font-medium text-slate-700">
                                 Capper <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -633,7 +633,7 @@ export default function UploadPage() {
                                 list="cappers-list"
                                 value={formData.capper_name}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="Select or type capper name"
                                 required
                             />
@@ -646,7 +646,7 @@ export default function UploadPage() {
 
                         {/* Sport */}
                         <div>
-                            <label htmlFor="sport" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="sport" className="block text-sm font-medium text-slate-700">
                                 Sport <span className="text-red-500">*</span>
                             </label>
                             <select
@@ -654,7 +654,7 @@ export default function UploadPage() {
                                 name="sport"
                                 value={formData.sport}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-900 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 required
                             >
                                 <option value="">Select a sport</option>
@@ -673,7 +673,7 @@ export default function UploadPage() {
 
                         {/* League */}
                         <div>
-                            <label htmlFor="league" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="league" className="block text-sm font-medium text-slate-700">
                                 League
                             </label>
                             <input
@@ -682,14 +682,14 @@ export default function UploadPage() {
                                 name="league"
                                 value={formData.league}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., NFL, Premier League"
                             />
                         </div>
 
                         {/* Match/Game */}
                         <div>
-                            <label htmlFor="match_key" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="match_key" className="block text-sm font-medium text-slate-700">
                                 Match/Game
                             </label>
                             <input
@@ -698,14 +698,14 @@ export default function UploadPage() {
                                 name="match_key"
                                 value={formData.match_key}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., LAL vs BOS"
                             />
                         </div>
 
                         {/* Pick Description */}
                         <div>
-                            <label htmlFor="pick_text" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="pick_text" className="block text-sm font-medium text-slate-700">
                                 Pick Description <span className="text-red-500">*</span>
                             </label>
                             <textarea
@@ -714,7 +714,7 @@ export default function UploadPage() {
                                 value={formData.pick_text}
                                 onChange={handleInputChange}
                                 rows={3}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                 placeholder="e.g., Lakers -5.5, Over 220.5"
                                 required
                             />
@@ -724,7 +724,7 @@ export default function UploadPage() {
                         <div className="grid grid-cols-2 gap-4">
                             {/* Units Risked */}
                             <div>
-                                <label htmlFor="units_risked" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="units_risked" className="block text-sm font-medium text-slate-700">
                                     Units Risked <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -735,7 +735,7 @@ export default function UploadPage() {
                                     onChange={handleInputChange}
                                     step="0.5"
                                     min="0.5"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                     placeholder="1.0"
                                     required
                                 />
@@ -743,7 +743,7 @@ export default function UploadPage() {
 
                             {/* Odds */}
                             <div>
-                                <label htmlFor="odds" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="odds" className="block text-sm font-medium text-slate-700">
                                     Odds (American)
                                 </label>
                                 <input
@@ -752,7 +752,7 @@ export default function UploadPage() {
                                     name="odds"
                                     value={formData.odds}
                                     onChange={handleInputChange}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-green-500"
                                     placeholder="-110"
                                 />
                             </div>
@@ -760,8 +760,8 @@ export default function UploadPage() {
 
                         {/* Game Date */}
                         <div>
-                            <label htmlFor="manual_game_date" className="block text-sm font-medium text-gray-700">
-                                Game Date <span className="text-gray-400 font-normal">(optional)</span>
+                            <label htmlFor="manual_game_date" className="block text-sm font-medium text-slate-700">
+                                Game Date <span className="text-slate-500 font-normal">(optional)</span>
                             </label>
                             <input
                                 type="date"
@@ -769,9 +769,9 @@ export default function UploadPage() {
                                 name="game_date"
                                 value={formData.game_date}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                             />
-                            <p className="mt-1 text-xs text-gray-400">When the game is played — used for auto-grading</p>
+                            <p className="mt-1 text-xs text-slate-500">When the game is played — used for auto-grading</p>
                         </div>
 
                         {/* Success Message */}

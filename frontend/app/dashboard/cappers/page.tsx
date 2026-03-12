@@ -57,21 +57,21 @@ export default function CappersPage() {
     })
 
     const SortIcon = ({ col }: { col: SortKey }) => {
-        if (sortKey !== col) return <ChevronUp className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100" />
+        if (sortKey !== col) return <ChevronUp className="h-3 w-3 text-slate-500 opacity-0 group-hover:opacity-100" />
         return sortDir === "asc"
-            ? <ChevronUp className="h-3 w-3 text-gray-700" />
-            : <ChevronDown className="h-3 w-3 text-gray-700" />
+            ? <ChevronUp className="h-3 w-3 text-slate-700" />
+            : <ChevronDown className="h-3 w-3 text-slate-700" />
     }
 
     const winRateColor = (rate: number) => {
         if (rate < 50) return "text-red-600"
         if (rate > 55) return "text-green-600"
-        return "text-gray-900"
+        return "text-slate-900"
     }
 
     const Th = ({ col, label }: { col: SortKey, label: string }) => (
         <th
-            className="group cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 hover:bg-gray-100"
+            className="group cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700 hover:bg-slate-100"
             onClick={() => handleSort(col)}
         >
             <div className="flex items-center gap-1">
@@ -81,26 +81,26 @@ export default function CappersPage() {
         </th>
     )
 
-    if (loading) return <div className="text-gray-700">Loading...</div>
+    if (loading) return <div className="text-slate-700">Loading...</div>
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">Cappers</h1>
-                <Link href="/dashboard/cappers/compare" className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                <h1 className="text-3xl font-bold text-slate-900">Cappers</h1>
+                <Link href="/dashboard/cappers/compare" className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
                     <GitCompare className="h-4 w-4" /> Compare
                 </Link>
             </div>
 
             <div className="rounded-lg bg-white shadow overflow-hidden">
                 {cappers.length === 0 ? (
-                    <div className="p-6 text-center text-gray-700">No cappers with picks yet</div>
+                    <div className="p-6 text-center text-slate-700">No cappers with picks yet</div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Rank</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Rank</th>
                                     <Th col="name" label="Name" />
                                     <Th col="total_picks" label="Picks" />
                                     <Th col="confirmed_win_rate" label="Win Rate" />
@@ -111,29 +111,29 @@ export default function CappersPage() {
                                     <Th col="current_streak" label="Streak" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
+                            <tbody className="divide-y divide-slate-200 bg-white">
                                 {sorted.map((capper, i) => (
-                                    <tr key={capper.id} className="hover:bg-gray-50">
-                                        <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-gray-500">
+                                    <tr key={capper.id} className="hover:bg-slate-50">
+                                        <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-slate-500">
                                             #{i + 1}
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-4">
                                             <Link
                                                 href={`/dashboard/cappers/${capper.id}`}
-                                                className="text-sm font-semibold text-gray-900 hover:text-green-600"
+                                                className="text-sm font-semibold text-slate-900 hover:text-green-600"
                                             >
                                                 {capper.name}
                                             </Link>
-                                            <div className="text-xs text-gray-500">{capper.wins}W-{capper.losses}L-{capper.pushes}P</div>
+                                            <div className="text-xs text-slate-500">{capper.wins}W-{capper.losses}L-{capper.pushes}P</div>
                                         </td>
-                                        <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">{capper.total_picks}</td>
+                                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{capper.total_picks}</td>
                                         <td className={`whitespace-nowrap px-4 py-4 text-sm font-medium ${winRateColor(capper.confirmed_win_rate)}`}>
                                             {capper.confirmed_win_rate.toFixed(1)}%
                                         </td>
                                         <td className={`whitespace-nowrap px-4 py-4 text-sm ${winRateColor(capper.total_win_rate)}`}>
                                             ~{capper.total_win_rate.toFixed(1)}%
                                         </td>
-                                        <td className={`whitespace-nowrap px-4 py-4 text-sm font-medium ${capper.roi > 0 ? 'text-green-600' : capper.roi < 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                                        <td className={`whitespace-nowrap px-4 py-4 text-sm font-medium ${capper.roi > 0 ? 'text-green-600' : capper.roi < 0 ? 'text-red-600' : 'text-slate-700'}`}>
                                             {capper.roi > 0 ? '+' : ''}{capper.roi.toFixed(1)}%
                                         </td>
                                         <td className={`whitespace-nowrap px-4 py-4 text-sm font-medium ${capper.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -145,12 +145,12 @@ export default function CappersPage() {
                                                     {capper.pending}
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-400">—</span>
+                                                <span className="text-slate-500">—</span>
                                             )}
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-4 text-sm font-medium">
                                             {capper.current_streak === 0 ? (
-                                                <span className="text-gray-400">—</span>
+                                                <span className="text-slate-500">—</span>
                                             ) : capper.current_streak > 0 ? (
                                                 <span className="text-green-600">W{capper.current_streak}</span>
                                             ) : (

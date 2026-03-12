@@ -168,7 +168,7 @@ export default function PicksPage() {
                     <XCircle className="h-4 w-4" /> Loss
                 </span>
             case "PUSH":
-                return <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+                return <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-800">
                     <MinusCircle className="h-4 w-4" /> Push
                 </span>
             default:
@@ -187,7 +187,7 @@ export default function PicksPage() {
             <span className="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700">Auto</span>
         )
         if (gradeSource === "manual") return (
-            <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">Manual</span>
+            <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">Manual</span>
         )
         return null
     }
@@ -230,12 +230,12 @@ export default function PicksPage() {
         return true
     })
 
-    if (loading) return <div className="text-gray-700">Loading...</div>
+    if (loading) return <div className="text-slate-700">Loading...</div>
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">Picks</h1>
+                <h1 className="text-3xl font-bold text-slate-900">Picks</h1>
                 <div className="flex items-center gap-2">
                     {pendingCount > 0 && (
                         <button
@@ -249,7 +249,7 @@ export default function PicksPage() {
                     )}
                     <button
                         onClick={exportCSV}
-                        className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
                         <Download className="h-4 w-4" />
                         Export CSV
@@ -259,12 +259,12 @@ export default function PicksPage() {
 
             {/* Auto-grade toast */}
             {gradeResult && (
-                <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-gray-900 p-4 text-white shadow-xl">
+                <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-slate-900 p-4 text-white shadow-xl">
                     <p className="font-semibold">Auto-Grade Complete</p>
-                    <p className="mt-1 text-sm text-gray-300">
+                    <p className="mt-1 text-sm text-slate-300">
                         ESPN graded: <span className="text-blue-400 font-medium">{gradeResult.graded_by_api}</span>
                         {" · "}Auto-win: <span className="text-orange-400 font-medium">{gradeResult.auto_win}</span>
-                        {" · "}Skipped: <span className="text-gray-400">{gradeResult.skipped_not_final}</span>
+                        {" · "}Skipped: <span className="text-slate-500">{gradeResult.skipped_not_final}</span>
                     </p>
                     {gradeResult.errors.length > 0 && (
                         <p className="mt-1 text-xs text-red-400">{gradeResult.errors.length} error(s)</p>
@@ -274,25 +274,25 @@ export default function PicksPage() {
 
             {/* Bulk action bar */}
             {selectedIds.size > 0 && (
-                <div className="flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-white">
+                <div className="flex items-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-white">
                     <span className="text-sm font-medium">{selectedIds.size} selected</span>
                     <div className="flex gap-2 ml-2">
                         <button onClick={() => handleBulkGrade("WIN")} disabled={bulkGrading} className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold hover:bg-green-700 disabled:opacity-50">Win</button>
                         <button onClick={() => handleBulkGrade("LOSS")} disabled={bulkGrading} className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700 disabled:opacity-50">Loss</button>
-                        <button onClick={() => handleBulkGrade("PUSH")} disabled={bulkGrading} className="rounded bg-gray-600 px-3 py-1.5 text-xs font-semibold hover:bg-gray-500 disabled:opacity-50">Push</button>
+                        <button onClick={() => handleBulkGrade("PUSH")} disabled={bulkGrading} className="rounded bg-gray-600 px-3 py-1.5 text-xs font-semibold hover:bg-slate-500 disabled:opacity-50">Push</button>
                     </div>
-                    <button onClick={clearSelection} className="ml-auto text-xs text-gray-400 hover:text-white">Clear</button>
+                    <button onClick={clearSelection} className="ml-auto text-xs text-slate-500 hover:text-white">Clear</button>
                 </div>
             )}
 
             {/* Filters */}
             <div className="flex gap-4 rounded-lg bg-white p-4 shadow">
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Filter by Capper</label>
+                    <label className="block text-sm font-medium text-slate-700">Filter by Capper</label>
                     <select
                         value={selectedCapper}
                         onChange={(e) => setSelectedCapper(e.target.value === "all" ? "all" : Number(e.target.value))}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     >
                         <option value="all">All Cappers</option>
                         {cappers.map((capper) => (
@@ -301,11 +301,11 @@ export default function PicksPage() {
                     </select>
                 </div>
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Filter by Result</label>
+                    <label className="block text-sm font-medium text-slate-700">Filter by Result</label>
                     <select
                         value={selectedResult}
                         onChange={(e) => setSelectedResult(e.target.value)}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     >
                         <option value="all">All Results</option>
                         <option value="PENDING">Pending</option>
@@ -315,11 +315,11 @@ export default function PicksPage() {
                     </select>
                 </div>
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Date Range</label>
+                    <label className="block text-sm font-medium text-slate-700">Date Range</label>
                     <select
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     >
                         <option value="all">All Time</option>
                         <option value="1">Today</option>
@@ -333,61 +333,61 @@ export default function PicksPage() {
             {/* Picks Table */}
             <div className="rounded-lg bg-white shadow overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
                             <tr>
                                 <th className="px-3 py-3 text-left">
-                                    <button onClick={selectAllPending} className="text-xs text-gray-500 hover:text-gray-800 font-medium" title="Select all pending">☐</button>
+                                    <button onClick={selectAllPending} className="text-xs text-slate-500 hover:text-slate-800 font-medium" title="Select all pending">☐</button>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Dates</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Capper</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Units</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Odds</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Result</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Profit</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Dates</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Capper</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Sport</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Pick</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Units</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Odds</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Result</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Profit</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
+                        <tbody className="divide-y divide-slate-200 bg-white">
                             {filteredPicks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-4 text-center text-gray-700">No picks found</td>
+                                    <td colSpan={10} className="px-6 py-4 text-center text-slate-700">No picks found</td>
                                 </tr>
                             ) : (
                                 filteredPicks.map((pick) => (
-                                    <tr key={pick.id} className={`hover:bg-gray-50 ${selectedIds.has(pick.id) ? "bg-blue-50" : ""}`}>
+                                    <tr key={pick.id} className={`hover:bg-slate-50 ${selectedIds.has(pick.id) ? "bg-blue-50" : ""}`}>
                                         <td className="px-3 py-4">
                                             {pick.result === "PENDING" && (
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIds.has(pick.id)}
                                                     onChange={() => toggleSelect(pick.id)}
-                                                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
                                                 />
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                        <td className="px-6 py-4 text-sm text-slate-900">
                                             {pick.game_date && (
                                                 <div className="font-medium">{new Date(pick.game_date).toLocaleDateString()}</div>
                                             )}
-                                            <div className={pick.game_date ? "text-xs text-gray-400" : ""}>
+                                            <div className={pick.game_date ? "text-xs text-slate-500" : ""}>
                                                 {pick.game_date ? "Added " : ""}{new Date(pick.date).toLocaleDateString()}
                                             </div>
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
                                             {pick.capper.name}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{pick.sport}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{pick.sport}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-900">
                                             <div className="max-w-xs">
                                                 {pick.match_key && <div className="font-medium">{pick.match_key}</div>}
-                                                <div className="text-gray-600">{pick.pick_text}</div>
+                                                <div className="text-slate-600">{pick.pick_text}</div>
                                             </div>
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{pick.units_risked}u</td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{pick.units_risked}u</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
                                             {pick.odds ? (pick.odds > 0 ? `+${pick.odds}` : pick.odds) : "-"}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm">
@@ -396,7 +396,7 @@ export default function PicksPage() {
                                                 {pick.result !== "PENDING" && getGradeSourceBadge(pick.grade_source)}
                                             </div>
                                         </td>
-                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                                             {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm">
@@ -409,7 +409,7 @@ export default function PicksPage() {
                                                         <button onClick={() => gradePick(pick.id, "LOSS")} className="rounded bg-red-100 p-1 text-red-600 hover:bg-red-200" title="Loss">
                                                             <XCircle className="h-5 w-5" />
                                                         </button>
-                                                        <button onClick={() => gradePick(pick.id, "PUSH")} className="rounded bg-gray-100 p-1 text-gray-600 hover:bg-gray-200" title="Push">
+                                                        <button onClick={() => gradePick(pick.id, "PUSH")} className="rounded bg-slate-100 p-1 text-slate-600 hover:bg-slate-200" title="Push">
                                                             <MinusCircle className="h-5 w-5" />
                                                         </button>
                                                     </>

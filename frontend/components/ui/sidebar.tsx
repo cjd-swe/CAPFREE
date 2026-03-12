@@ -112,15 +112,15 @@ export function Sidebar() {
     }
 
     return (
-        <div className="flex h-full w-64 flex-col bg-gray-900 text-white">
-            <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+        <div className="flex h-full w-64 flex-col bg-slate-900 text-white">
+            <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
                 <h1 className="text-xl font-bold text-green-500">SharpWatch</h1>
 
                 {/* Bell with dropdown */}
                 <div className="relative" ref={bellRef}>
                     <button
                         onClick={handleBellClick}
-                        className="relative rounded-md p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                        className="relative rounded-md p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
                         aria-label="Notifications"
                     >
                         <Bell className="h-5 w-5" />
@@ -135,8 +135,8 @@ export function Sidebar() {
                         // Fixed to viewport: appears below the header at the right edge of the sidebar
                         // so it's never clipped by the sidebar's layout
                         <div className="fixed top-16 left-64 z-50 w-96 rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                                <span className="text-sm font-semibold text-gray-900">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                <span className="text-sm font-semibold text-slate-900">
                                     Notifications
                                     {unreadCount > 0 && (
                                         <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
@@ -148,20 +148,20 @@ export function Sidebar() {
                                     {unreadCount > 0 && (
                                         <button
                                             onClick={handleMarkAllRead}
-                                            className="text-xs text-gray-400 hover:text-gray-700"
+                                            className="text-xs text-slate-500 hover:text-slate-700"
                                         >
                                             Mark all read
                                         </button>
                                     )}
-                                    <button onClick={() => setBellOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                    <button onClick={() => setBellOpen(false)} className="text-slate-500 hover:text-slate-600">
                                         <X className="h-4 w-4" />
                                     </button>
                                 </div>
                             </div>
 
-                            <ul className="max-h-[calc(100vh-5rem)] overflow-y-auto divide-y divide-gray-50">
+                            <ul className="max-h-[calc(100vh-5rem)] overflow-y-auto divide-y divide-slate-100">
                                 {notifications.length === 0 ? (
-                                    <li className="px-4 py-6 text-center text-sm text-gray-400">
+                                    <li className="px-4 py-6 text-center text-sm text-slate-500">
                                         No notifications yet
                                     </li>
                                 ) : (
@@ -170,10 +170,10 @@ export function Sidebar() {
                                             key={n.id}
                                             className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}
                                         >
-                                            <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                                            <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-slate-200'}`} />
                                             <div className="flex-1">
-                                                <p className="text-sm text-gray-800 leading-snug break-words">{n.message}</p>
-                                                <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.created_at)}</p>
+                                                <p className="text-sm text-slate-800 leading-snug break-words">{n.message}</p>
+                                                <p className="mt-0.5 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
                                             </div>
                                         </li>
                                     ))
@@ -194,15 +194,15 @@ export function Sidebar() {
                                 {popupNotifs.length === 1 ? "New pick received" : `${popupNotifs.length} new picks received`}
                             </span>
                         </div>
-                        <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                        <ul className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
                             {popupNotifs.map(n => (
                                 <li key={n.id} className="px-5 py-3">
-                                    <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
-                                    <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.created_at)}</p>
+                                    <p className="text-sm text-slate-800 leading-snug">{n.message}</p>
+                                    <p className="mt-0.5 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
                                 </li>
                             ))}
                         </ul>
-                        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                        <div className="px-5 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                             <button
                                 onClick={dismissPopup}
                                 className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -223,13 +223,13 @@ export function Sidebar() {
                             href={item.href}
                             className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
                                 active
-                                    ? "bg-gray-800 text-white"
-                                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                                    ? "bg-slate-800 text-white"
+                                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
                             }`}
                         >
                             <item.icon
                                 className={`mr-3 h-6 w-6 flex-shrink-0 ${
-                                    active ? "text-green-400" : "text-gray-400 group-hover:text-white"
+                                    active ? "text-green-400" : "text-slate-500 group-hover:text-white"
                                 }`}
                                 aria-hidden="true"
                             />

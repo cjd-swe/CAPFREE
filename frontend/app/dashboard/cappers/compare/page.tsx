@@ -60,13 +60,13 @@ function StatRow({ label, a, b, format = (v: number) => String(v), higherIsBette
     const aWins = a !== null && b !== null && (higherIsBetter ? a > b : a < b)
     const bWins = a !== null && b !== null && (higherIsBetter ? b > a : b < a)
     return (
-        <tr className="border-b border-gray-100">
-            <td className={`py-3 pl-4 pr-2 text-right text-sm font-semibold ${aWins ? "text-green-600" : "text-gray-900"}`}>
+        <tr className="border-b border-slate-200">
+            <td className={`py-3 pl-4 pr-2 text-right text-sm font-semibold ${aWins ? "text-green-600" : "text-slate-900"}`}>
                 {a !== null ? format(a) : "—"}
                 {aWins && <span className="ml-1 text-green-500">◀</span>}
             </td>
-            <td className="py-3 px-4 text-center text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</td>
-            <td className={`py-3 pr-4 pl-2 text-left text-sm font-semibold ${bWins ? "text-green-600" : "text-gray-900"}`}>
+            <td className="py-3 px-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</td>
+            <td className={`py-3 pr-4 pl-2 text-left text-sm font-semibold ${bWins ? "text-green-600" : "text-slate-900"}`}>
                 {bWins && <span className="mr-1 text-green-500">▶</span>}
                 {b !== null ? format(b) : "—"}
             </td>
@@ -127,20 +127,20 @@ export default function ComparePage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/dashboard/cappers" className="rounded-lg p-2 hover:bg-gray-200">
-                    <ArrowLeft className="h-6 w-6 text-gray-600" />
+                <Link href="/dashboard/cappers" className="rounded-lg p-2 hover:bg-slate-200">
+                    <ArrowLeft className="h-6 w-6 text-slate-600" />
                 </Link>
-                <h1 className="text-2xl font-bold text-gray-900">Compare Cappers</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Compare Cappers</h1>
             </div>
 
             {/* Capper Selectors */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Capper A</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Capper A</label>
                     <select
                         value={selectedA}
                         onChange={e => setSelectedA(e.target.value ? Number(e.target.value) : "")}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     >
                         <option value="">Select capper...</option>
                         {cappers.filter(c => c.id !== Number(selectedB)).map(c => (
@@ -149,11 +149,11 @@ export default function ComparePage() {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Capper B</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Capper B</label>
                     <select
                         value={selectedB}
                         onChange={e => setSelectedB(e.target.value ? Number(e.target.value) : "")}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     >
                         <option value="">Select capper...</option>
                         {cappers.filter(c => c.id !== Number(selectedA)).map(c => (
@@ -164,7 +164,7 @@ export default function ComparePage() {
             </div>
 
             {(!selectedA || !selectedB) && (
-                <div className="rounded-xl bg-gray-50 border border-gray-200 p-12 text-center text-gray-400 text-sm">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-12 text-center text-slate-500 text-sm">
                     Select two cappers above to compare them
                 </div>
             )}
@@ -173,19 +173,19 @@ export default function ComparePage() {
                 <>
                     {/* Header names */}
                     <div className="grid grid-cols-[1fr_120px_1fr] items-center">
-                        <Link href={`/dashboard/cappers/${capperA.id}`} className="text-xl font-bold text-gray-900 hover:text-green-600 text-right pr-4">
+                        <Link href={`/dashboard/cappers/${capperA.id}`} className="text-xl font-bold text-slate-900 hover:text-green-600 text-right pr-4">
                             {capperA.name}
                         </Link>
-                        <div className="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest">vs</div>
-                        <Link href={`/dashboard/cappers/${capperB.id}`} className="text-xl font-bold text-gray-900 hover:text-green-600 pl-4">
+                        <div className="text-center text-xs font-semibold text-slate-500 uppercase tracking-widest">vs</div>
+                        <Link href={`/dashboard/cappers/${capperB.id}`} className="text-xl font-bold text-slate-900 hover:text-green-600 pl-4">
                             {capperB.name}
                         </Link>
                     </div>
 
                     {/* Stats comparison table */}
-                    <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">All-Time</p>
+                    <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">All-Time</p>
                         </div>
                         <table className="w-full">
                             <tbody>
@@ -207,24 +207,24 @@ export default function ComparePage() {
 
                     {/* Recent period stats */}
                     {(p7A || p7B || p30A || p30B) && (
-                        <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Form</p>
+                        <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent Form</p>
                             </div>
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-gray-100">
-                                        <th className="py-2 px-4 text-right text-xs text-gray-400">{capperA.name}</th>
-                                        <th className="py-2 px-4 text-center text-xs text-gray-400"></th>
-                                        <th className="py-2 px-4 text-left text-xs text-gray-400">{capperB.name}</th>
+                                    <tr className="border-b border-slate-200">
+                                        <th className="py-2 px-4 text-right text-xs text-slate-500">{capperA.name}</th>
+                                        <th className="py-2 px-4 text-center text-xs text-slate-500"></th>
+                                        <th className="py-2 px-4 text-left text-xs text-slate-500">{capperB.name}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className="bg-gray-50"><td colSpan={3} className="px-4 py-1 text-xs font-semibold text-gray-500">Last 7 days</td></tr>
+                                    <tr className="bg-slate-50"><td colSpan={3} className="px-4 py-1 text-xs font-semibold text-slate-500">Last 7 days</td></tr>
                                     <StatRow label="Win Rate" a={p7A?.win_rate ?? null} b={p7B?.win_rate ?? null} format={v => `${v}%`} />
                                     <StatRow label="ROI" a={p7A?.roi ?? null} b={p7B?.roi ?? null} format={fmtPct} />
                                     <StatRow label="Profit" a={p7A?.profit ?? null} b={p7B?.profit ?? null} format={fmtU} />
-                                    <tr className="bg-gray-50"><td colSpan={3} className="px-4 py-1 text-xs font-semibold text-gray-500">Last 30 days</td></tr>
+                                    <tr className="bg-slate-50"><td colSpan={3} className="px-4 py-1 text-xs font-semibold text-slate-500">Last 30 days</td></tr>
                                     <StatRow label="Win Rate" a={p30A?.win_rate ?? null} b={p30B?.win_rate ?? null} format={v => `${v}%`} />
                                     <StatRow label="ROI" a={p30A?.roi ?? null} b={p30B?.roi ?? null} format={fmtPct} />
                                     <StatRow label="Profit" a={p30A?.profit ?? null} b={p30B?.profit ?? null} format={fmtU} />
@@ -235,8 +235,8 @@ export default function ComparePage() {
 
                     {/* Radar chart */}
                     {radarData.length > 0 && (
-                        <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-6">
-                            <h2 className="mb-2 text-sm font-semibold text-gray-700">Overall Profile</h2>
+                        <div className="rounded-xl bg-white shadow-sm border border-slate-200 p-6">
+                            <h2 className="mb-2 text-sm font-semibold text-slate-700">Overall Profile</h2>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RadarChart data={radarData}>
@@ -248,7 +248,7 @@ export default function ComparePage() {
                                     </RadarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-2 flex justify-center gap-6 text-xs text-gray-500">
+                            <div className="mt-2 flex justify-center gap-6 text-xs text-slate-500">
                                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-green-600" />{capperA.name}</span>
                                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-blue-600" />{capperB.name}</span>
                             </div>
