@@ -43,6 +43,8 @@ export default function PicksPage() {
     const [dateRange, setDateRange] = useState<string>("all")
     const [autoGrading, setAutoGrading] = useState(false)
     const [gradeResult, setGradeResult] = useState<AutoGradeResult | null>(null)
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+    const [bulkGrading, setBulkGrading] = useState(false)
 
     useEffect(() => {
         fetchCappers()
@@ -107,6 +109,41 @@ export default function PicksPage() {
             console.error("Auto-grade failed:", err)
         } finally {
             setAutoGrading(false)
+        }
+    }
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            next.has(id) ? next.delete(id) : next.add(id)
+            return next
+        })
+    }
+
+    const selectAllPending = () => {
+        const pendingIds = filteredPicks.filter(p => p.result === "PENDING").map(p => p.id)
+        setSelectedIds(new Set(pendingIds))
+    }
+
+    const clearSelection = () => setSelectedIds(new Set())
+
+    const handleBulkGrade = async (result: "WIN" | "LOSS" | "PUSH") => {
+        if (selectedIds.size === 0) return
+        setBulkGrading(true)
+        try {
+            const res = await fetch("http://localhost:8000/api/picks/bulk-grade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pick_ids: Array.from(selectedIds), result }),
+            })
+            if (res.ok) {
+                setSelectedIds(new Set())
+                fetchPicks()
+            }
+        } catch (err) {
+            console.error("Bulk grade failed:", err)
+        } finally {
+            setBulkGrading(false)
         }
     }
 
@@ -202,6 +239,19 @@ export default function PicksPage() {
                 </div>
             )}
 
+            {/* Bulk action bar */}
+            {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-white">
+                    <span className="text-sm font-medium">{selectedIds.size} selected</span>
+                    <div className="flex gap-2 ml-2">
+                        <button onClick={() => handleBulkGrade("WIN")} disabled={bulkGrading} className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold hover:bg-green-700 disabled:opacity-50">Win</button>
+                        <button onClick={() => handleBulkGrade("LOSS")} disabled={bulkGrading} className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700 disabled:opacity-50">Loss</button>
+                        <button onClick={() => handleBulkGrade("PUSH")} disabled={bulkGrading} className="rounded bg-gray-600 px-3 py-1.5 text-xs font-semibold hover:bg-gray-500 disabled:opacity-50">Push</button>
+                    </div>
+                    <button onClick={clearSelection} className="ml-auto text-xs text-gray-400 hover:text-white">Clear</button>
+                </div>
+            )}
+
             {/* Filters */}
             <div className="flex gap-4 rounded-lg bg-white p-4 shadow">
                 <div className="flex-1">
@@ -253,6 +303,9 @@ export default function PicksPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-3 py-3 text-left">
+                                    <button onClick={selectAllPending} className="text-xs text-gray-500 hover:text-gray-800 font-medium" title="Select all pending">☐</button>
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Dates</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Capper</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
@@ -267,11 +320,21 @@ export default function PicksPage() {
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {filteredPicks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-4 text-center text-gray-700">No picks found</td>
+                                    <td colSpan={10} className="px-6 py-4 text-center text-gray-700">No picks found</td>
                                 </tr>
                             ) : (
                                 filteredPicks.map((pick) => (
-                                    <tr key={pick.id} className="hover:bg-gray-50">
+                                    <tr key={pick.id} className={`hover:bg-gray-50 ${selectedIds.has(pick.id) ? "bg-blue-50" : ""}`}>
+                                        <td className="px-3 py-4">
+                                            {pick.result === "PENDING" && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(pick.id)}
+                                                    onChange={() => toggleSelect(pick.id)}
+                                                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                                />
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {pick.game_date && (
                                                 <div className="font-medium">{new Date(pick.game_date).toLocaleDateString()}</div>

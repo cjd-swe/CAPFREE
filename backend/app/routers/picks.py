@@ -207,6 +207,32 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
     )
 
 
+@router.post("/bulk-grade", response_model=schemas.BulkGradeResult)
+async def bulk_grade_picks(payload: schemas.BulkGradeRequest, db: AsyncSession = Depends(database.get_db)):
+    """Grade multiple picks at once with the same result."""
+    result = await db.execute(
+        select(models.Pick)
+        .where(models.Pick.id.in_(payload.pick_ids))
+    )
+    picks = result.scalars().all()
+
+    graded = 0
+    skipped = 0
+    now = datetime.utcnow()
+    for pick in picks:
+        if pick.result != "PENDING":
+            skipped += 1
+            continue
+        pick.result = payload.result.value
+        pick.profit = _calculate_profit(payload.result.value, pick.odds, pick.units_risked)
+        pick.grade_source = "manual"
+        pick.graded_at = now
+        graded += 1
+
+    await db.commit()
+    return schemas.BulkGradeResult(graded=graded, skipped=skipped)
+
+
 @router.get("/{pick_id}", response_model=schemas.Pick)
 async def read_pick(pick_id: int, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(

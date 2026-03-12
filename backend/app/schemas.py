@@ -87,6 +87,16 @@ class AutoGradeResult(BaseModel):
     errors: List[str]
 
 
+class BulkGradeRequest(BaseModel):
+    pick_ids: List[int]
+    result: PickResult
+
+
+class BulkGradeResult(BaseModel):
+    graded: int
+    skipped: int
+
+
 class NotificationBase(BaseModel):
     pick_id: Optional[int] = None
     message: str
