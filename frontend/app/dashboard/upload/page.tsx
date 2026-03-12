@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Upload, FileText, Check, AlertCircle, Plus, X } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Upload, FileText, Check, AlertCircle, Plus, X, ImageIcon } from "lucide-react"
 
 type TabType = "upload" | "manual"
 
@@ -17,6 +17,8 @@ export default function UploadPage() {
     const [files, setFiles] = useState<File[]>([])
     const [isDragging, setIsDragging] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const dragCounter = useRef(0)
     const [picks, setPicks] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
     const [errorModal, setErrorModal] = useState<{ title: string; message: string; rawText?: string } | null>(null)
@@ -61,36 +63,43 @@ export default function UploadPage() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setFiles(prev => [...prev, ...Array.from(e.target.files || [])])
-            setError(null)
+            addFiles(Array.from(e.target.files))
+            e.target.value = ""  // reset so same file can be re-added
         }
+    }
+
+    const addFiles = (incoming: File[]) => {
+        const images = incoming.filter(f => f.type.startsWith("image/"))
+        if (images.length === 0) { setError("Please drop image files only"); return }
+        setFiles(prev => {
+            const existing = new Set(prev.map(f => f.name + f.size))
+            return [...prev, ...images.filter(f => !existing.has(f.name + f.size))]
+        })
+        setError(null)
+    }
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault()
+        dragCounter.current++
+        setIsDragging(true)
     }
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault()
-        setIsDragging(true)
     }
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault()
-        setIsDragging(false)
+        dragCounter.current--
+        if (dragCounter.current === 0) setIsDragging(false)
     }
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault()
+        dragCounter.current = 0
         setIsDragging(false)
-
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const droppedFiles = Array.from(e.dataTransfer.files).filter(
-                file => file.type.startsWith("image/")
-            )
-
-            if (droppedFiles.length > 0) {
-                setFiles(prev => [...prev, ...droppedFiles])
-                setError(null)
-            } else {
-                setError("Please upload image files only")
-            }
+            addFiles(Array.from(e.dataTransfer.files))
         }
     }
 
@@ -377,51 +386,100 @@ export default function UploadPage() {
             {activeTab === "upload" && (
                 <>
                     <div className="rounded-lg bg-white p-6 shadow">
+                        {/* Hidden file input */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
+
+                        {/* Drop zone */}
                         <div
-                            className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed p-12 transition-colors ${isDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
-                                }`}
+                            className={`relative rounded-xl border-2 border-dashed transition-all duration-150 ${
+                                isDragging
+                                    ? "border-green-500 bg-green-50 scale-[1.01]"
+                                    : "border-gray-300 hover:border-green-400 hover:bg-gray-50"
+                            }`}
+                            onDragEnter={handleDragEnter}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                         >
-                            <Upload className={`h-12 w-12 ${isDragging ? "text-green-500" : "text-gray-400"}`} />
-                            <p className="mt-2 text-sm text-gray-700">
-                                Drag and drop screenshots here, or click to select files
-                            </p>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleFileChange}
-                                className="mt-4"
-                            />
-
-                            {/* File List */}
-                            {files.length > 0 && (
-                                <div className="mt-6 w-full max-w-md space-y-2">
-                                    <h4 className="text-sm font-medium text-gray-700">Selected Files:</h4>
-                                    {files.map((file, index) => (
-                                        <div key={index} className="flex items-center justify-between rounded bg-gray-50 p-2 text-sm">
-                                            <span className="truncate text-gray-600">{file.name}</span>
-                                            <button
-                                                onClick={() => removeFile(index)}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    ))}
+                            {isDragging && (
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-green-50/80 z-10">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Upload className="h-12 w-12 text-green-500" />
+                                        <p className="text-lg font-semibold text-green-700">Drop to upload</p>
+                                    </div>
                                 </div>
                             )}
 
-                            {files.length > 0 && (
+                            {files.length === 0 ? (
+                                /* Empty state — click to browse */
                                 <button
-                                    onClick={handleUpload}
-                                    disabled={uploading}
-                                    className="mt-6 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex w-full flex-col items-center justify-center gap-3 p-16 text-center focus:outline-none"
                                 >
-                                    {uploading ? "Processing..." : `Extract Picks from ${files.length} Image${files.length !== 1 ? 's' : ''}`}
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                                        <Upload className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-700">
+                                            Drop screenshots here, or{" "}
+                                            <span className="text-green-600 underline underline-offset-2">browse</span>
+                                        </p>
+                                        <p className="mt-1 text-xs text-gray-400">PNG, JPG, WEBP — multiple files supported</p>
+                                    </div>
                                 </button>
+                            ) : (
+                                /* Thumbnail grid */
+                                <div className="p-4">
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                                        {files.map((file, index) => (
+                                            <div key={index} className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt={file.name}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <button
+                                                        onClick={() => removeFile(index)}
+                                                        className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white hover:bg-red-600"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <p className="truncate text-xs text-white">{file.name}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Add more tile */}
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-500 transition-colors"
+                                        >
+                                            <Plus className="h-6 w-6" />
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <p className="text-sm text-gray-500">{files.length} image{files.length !== 1 ? "s" : ""} selected</p>
+                                        <button
+                                            onClick={handleUpload}
+                                            disabled={uploading}
+                                            className="rounded-lg bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                            {uploading ? "Processing…" : `Extract Picks`}
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
 
