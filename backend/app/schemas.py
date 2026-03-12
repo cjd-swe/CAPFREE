@@ -34,6 +34,8 @@ class PickBase(BaseModel):
     profit: float = 0.0
     original_image_path: Optional[str] = None
     raw_text: Optional[str] = None
+    grade_source: Optional[str] = None
+    graded_at: Optional[datetime] = None
 
 class PickCreate(PickBase):
     capper_name: str # Use name to lookup or create capper
@@ -75,6 +77,32 @@ class Pick(PickBase):
 
     class Config:
         from_attributes = True
+
+class AutoGradeResult(BaseModel):
+    total_pending: int
+    graded_by_api: int
+    auto_win: int
+    skipped_not_final: int
+    errors: List[str]
+
+
+class NotificationBase(BaseModel):
+    pick_id: Optional[int] = None
+    message: str
+    read: bool = False
+
+
+class NotificationCreate(NotificationBase):
+    pass
+
+
+class Notification(NotificationBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 class TelegramQueueBase(BaseModel):
     message_id: str

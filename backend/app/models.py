@@ -36,8 +36,20 @@ class Pick(Base):
     profit = Column(Float, default=0.0)
     original_image_path = Column(String, nullable=True)
     raw_text = Column(String, nullable=True)
+    grade_source = Column(String, nullable=True)  # "manual" | "espn_api" | "auto_win"
+    graded_at = Column(DateTime, nullable=True)
 
     capper = relationship("Capper", back_populates="picks")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pick_id = Column(Integer, ForeignKey("picks.id", ondelete="CASCADE"), nullable=True)
+    message = Column(String)
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class TelegramQueue(Base):
     __tablename__ = "telegram_queue"
