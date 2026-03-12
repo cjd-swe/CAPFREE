@@ -40,6 +40,7 @@ export default function PicksPage() {
     const [loading, setLoading] = useState(true)
     const [selectedCapper, setSelectedCapper] = useState<number | "all">("all")
     const [selectedResult, setSelectedResult] = useState<string>("all")
+    const [dateRange, setDateRange] = useState<string>("all")
     const [autoGrading, setAutoGrading] = useState(false)
     const [gradeResult, setGradeResult] = useState<AutoGradeResult | null>(null)
 
@@ -156,9 +157,17 @@ export default function PicksPage() {
 
     const pendingCount = picks.filter(p => p.result === "PENDING").length
 
-    const filteredPicks = selectedResult === "all"
-        ? picks
-        : picks.filter(p => p.result === selectedResult)
+    const filteredPicks = picks.filter(p => {
+        if (selectedResult !== "all" && p.result !== selectedResult) return false
+        if (dateRange !== "all") {
+            const days = parseInt(dateRange)
+            const cutoff = new Date()
+            cutoff.setDate(cutoff.getDate() - days)
+            const pickDate = new Date(p.game_date ?? p.date)
+            if (pickDate < cutoff) return false
+        }
+        return true
+    })
 
     if (loading) return <div className="text-gray-700">Loading...</div>
 
@@ -220,6 +229,20 @@ export default function PicksPage() {
                         <option value="WIN">Win</option>
                         <option value="LOSS">Loss</option>
                         <option value="PUSH">Push</option>
+                    </select>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Date Range</label>
+                    <select
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    >
+                        <option value="all">All Time</option>
+                        <option value="1">Today</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
                     </select>
                 </div>
             </div>
