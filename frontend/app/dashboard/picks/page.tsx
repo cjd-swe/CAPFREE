@@ -13,6 +13,7 @@ interface Pick {
     capper_id: number
     capper: Capper
     date: string
+    game_date: string | null
     sport: string
     league: string | null
     match_key: string | null
@@ -229,7 +230,7 @@ export default function PicksPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Dates</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Capper</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
@@ -248,8 +249,13 @@ export default function PicksPage() {
                             ) : (
                                 filteredPicks.map((pick) => (
                                     <tr key={pick.id} className="hover:bg-gray-50">
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                            {new Date(pick.date).toLocaleDateString()}
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            {pick.game_date && (
+                                                <div className="font-medium">{new Date(pick.game_date).toLocaleDateString()}</div>
+                                            )}
+                                            <div className={pick.game_date ? "text-xs text-gray-400" : ""}>
+                                                {pick.game_date ? "Added " : ""}{new Date(pick.date).toLocaleDateString()}
+                                            </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                                             {pick.capper.name}

@@ -194,7 +194,8 @@ async def get_capper_profit_history(capper_id: int, db: AsyncSession = Depends(d
     for pick in picks:
         cumulative += pick.profit
         history.append({
-            "date": pick.date.strftime("%Y-%m-%d"),
+            "date": (pick.game_date or pick.date).strftime("%Y-%m-%d"),
+            "date_added": pick.date.strftime("%Y-%m-%d"),
             "pick_text": pick.pick_text,
             "result": pick.result,
             "grade_source": pick.grade_source,

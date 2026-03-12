@@ -19,10 +19,13 @@ export default function UploadPage() {
     const [uploading, setUploading] = useState(false)
     const [picks, setPicks] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
+    const [errorModal, setErrorModal] = useState<{ title: string; message: string; rawText?: string } | null>(null)
     const [selectedCapper, setSelectedCapper] = useState<string>("")
     const [capperAutoDetected, setCapperAutoDetected] = useState<boolean>(false)
     const [saving, setSaving] = useState(false)
     const [saveSuccess, setSaveSuccess] = useState(false)
+    const [saveMessage, setSaveMessage] = useState("")
+    const [gameDate, setGameDate] = useState<string>("")
 
     // Manual entry state
     const [cappers, setCappers] = useState<Capper[]>([])
@@ -35,7 +38,8 @@ export default function UploadPage() {
         match_key: "",
         pick_text: "",
         units_risked: "",
-        odds: ""
+        odds: "",
+        game_date: "",
     })
 
     // Fetch cappers for dropdown
@@ -119,11 +123,11 @@ export default function UploadPage() {
             const parsedPicks = data.picks ?? data
 
             if (parsedPicks.length === 0) {
-                setError(
-                    "No picks found in this image. OCR processed the file but couldn't identify any picks. " +
-                    "Make sure the screenshot shows clearly formatted picks (e.g. 'Lakers -5.5 2u'). " +
-                    "Higher resolution screenshots work best."
-                )
+                setErrorModal({
+                    title: "No picks found",
+                    message: "OCR processed the image but couldn't identify any picks. Make sure the screenshot shows clearly formatted picks (e.g. 'Lakers -5.5 2u'). Higher resolution screenshots work best.",
+                    rawText: data.raw_text || undefined,
+                })
                 return
             }
 
@@ -137,7 +141,10 @@ export default function UploadPage() {
                 setCapperAutoDetected(false)
             }
         } catch (err) {
-            setError("Failed to upload and parse images. Please try again.")
+            setErrorModal({
+                title: "Upload failed",
+                message: "Could not reach the server or process the image. Make sure the backend is running and try again.",
+            })
             console.error(err)
         } finally {
             setUploading(false)
@@ -173,7 +180,8 @@ export default function UploadPage() {
                 units_risked: parseFloat(formData.units_risked),
                 odds: formData.odds ? parseInt(formData.odds) : null,
                 result: "PENDING",
-                profit: 0.0
+                profit: 0.0,
+                game_date: formData.game_date ? new Date(formData.game_date).toISOString() : null,
             }
 
             const response = await fetch("http://localhost:8000/api/picks/", {
@@ -197,7 +205,8 @@ export default function UploadPage() {
                 match_key: "",
                 pick_text: "",
                 units_risked: "",
-                odds: ""
+                odds: "",
+                game_date: "",
             })
 
             // Refresh cappers list in case a new one was added
@@ -245,7 +254,8 @@ export default function UploadPage() {
                     odds: pick.odds || null,
                     result: "PENDING",
                     profit: 0.0,
-                    raw_text: pick.raw_text || null
+                    raw_text: pick.raw_text || null,
+                    game_date: gameDate ? new Date(gameDate).toISOString() : null,
                 }
 
                 return fetch("http://localhost:8000/api/picks/", {
@@ -259,20 +269,25 @@ export default function UploadPage() {
 
             const responses = await Promise.all(savePromises)
 
-            // Check if all requests succeeded
-            const allSucceeded = responses.every(response => response.ok)
-
-            if (!allSucceeded) {
+            if (responses.some(r => !r.ok)) {
                 throw new Error("Some picks failed to save")
             }
 
+            const duplicates = responses.filter(r => r.headers.get("X-Duplicate") === "true").length
+            const saved = responses.length - duplicates
             setSaveSuccess(true)
+            setSaveMessage(
+                duplicates > 0
+                    ? `${saved} pick${saved !== 1 ? "s" : ""} saved · ${duplicates} already existed`
+                    : `${saved} pick${saved !== 1 ? "s" : ""} saved`
+            )
 
             // Clear the picks and files after successful save
             setPicks([])
             setFiles([])
             setSelectedCapper("")
             setCapperAutoDetected(false)
+            setGameDate("")
 
             // Refresh cappers list in case a new one was added
             fetchCappers()
@@ -289,6 +304,47 @@ export default function UploadPage() {
 
     return (
         <div className="space-y-6">
+            {/* Error Modal */}
+            {errorModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+                        <div className="flex items-start gap-4 border-b border-gray-100 p-6">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+                                <AlertCircle className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900">{errorModal.title}</h3>
+                                <p className="mt-1 text-sm text-gray-600">{errorModal.message}</p>
+                            </div>
+                            <button onClick={() => setErrorModal(null)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        {errorModal.rawText && (
+                            <div className="p-6">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                    What OCR extracted from your image
+                                </p>
+                                <pre className="max-h-48 overflow-y-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words border border-gray-200">
+                                    {errorModal.rawText.trim() || "(nothing — image may be unreadable or blank)"}
+                                </pre>
+                                <p className="mt-2 text-xs text-gray-400">
+                                    If the text above looks correct but picks weren&apos;t detected, the format may not be recognised. Try a clearer screenshot.
+                                </p>
+                            </div>
+                        )}
+                        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                            <button
+                                onClick={() => setErrorModal(null)}
+                                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <h1 className="text-3xl font-bold text-gray-900">Add Picks</h1>
 
             {/* Tab Navigation */}
@@ -369,12 +425,6 @@ export default function UploadPage() {
                             )}
                         </div>
 
-                        {error && (
-                            <div className="mt-4 flex items-center text-red-600">
-                                <AlertCircle className="mr-2 h-5 w-5" />
-                                {error}
-                            </div>
-                        )}
                     </div>
 
                     {picks.length > 0 && (
@@ -438,11 +488,26 @@ export default function UploadPage() {
                                     </datalist>
                                 </div>
 
+                                {/* Game Date */}
+                                <div className="mb-6">
+                                    <label htmlFor="upload-game-date" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Game Date
+                                        <span className="ml-1.5 text-xs font-normal text-gray-400">(used for ESPN auto-grading)</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="upload-game-date"
+                                        value={gameDate}
+                                        onChange={e => setGameDate(e.target.value)}
+                                        className="block w-48 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                                    />
+                                </div>
+
                                 {/* Success Message */}
                                 {saveSuccess && (
                                     <div className="mb-4 flex items-center rounded-md bg-green-50 p-4 text-green-800">
-                                        <Check className="mr-2 h-5 w-5" />
-                                        Picks saved successfully!
+                                        <Check className="mr-2 h-5 w-5 shrink-0" />
+                                        {saveMessage || "Picks saved successfully!"}
                                     </div>
                                 )}
 
@@ -633,6 +698,22 @@ export default function UploadPage() {
                                     placeholder="-110"
                                 />
                             </div>
+                        </div>
+
+                        {/* Game Date */}
+                        <div>
+                            <label htmlFor="manual_game_date" className="block text-sm font-medium text-gray-700">
+                                Game Date <span className="text-gray-400 font-normal">(optional)</span>
+                            </label>
+                            <input
+                                type="date"
+                                id="manual_game_date"
+                                name="game_date"
+                                value={formData.game_date}
+                                onChange={handleInputChange}
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                            />
+                            <p className="mt-1 text-xs text-gray-400">When the game is played — used for auto-grading</p>
                         </div>
 
                         {/* Success Message */}

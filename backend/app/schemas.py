@@ -34,6 +34,7 @@ class PickBase(BaseModel):
     profit: float = 0.0
     original_image_path: Optional[str] = None
     raw_text: Optional[str] = None
+    game_date: Optional[datetime] = None
     grade_source: Optional[str] = None
     graded_at: Optional[datetime] = None
 

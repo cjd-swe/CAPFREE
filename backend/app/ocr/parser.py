@@ -130,8 +130,8 @@ def _extract_units(text: str) -> Optional[float]:
     m = re.search(r"(\d+\.?\d*)\s*[uU](?:\b|$)", text)
     if m:
         return float(m.group(1))
-    # "1 Unit" or "2 Units"
-    m = re.search(r"(\d+\.?\d*)\s*[Uu]nits?", text)
+    # "1 Unit", "2 Units", "(2 units)", "(2 unit)"
+    m = re.search(r"\(?\s*(\d+\.?\d*)\s*[Uu]nits?\s*\)?", text)
     if m:
         return float(m.group(1))
     return None
@@ -157,11 +157,149 @@ def _detect_sport_from_context(text: str) -> Tuple[Optional[str], Optional[str]]
     return None, None
 
 
+# ── Bet slip detection & parsing ──────────────────────────────────────────────
+
+# Signals that the image is a sportsbook bet slip receipt
+_BET_SLIP_SIGNALS = re.compile(
+    r"straights?\s*\(\d+\)|bet has been accepted|share my bet|"
+    r"keep placed bets|total payout|your bets?\s+(?:is|are)\s+confirmed|"
+    r"wager\s+\$|bet\s+confirmed|bet slip|betslip",
+    re.IGNORECASE,
+)
+
+# OCR misreads "-" as '"' or "'" before 3-4 digit odds
+_ODDS_ARTIFACT_RE = re.compile(r'["\'\u201c\u201d](\d{3,4})')
+
+# Match line inside a bet slip: "Team at Opponent" or "Team vs Opponent"
+_MATCH_LINE_RE = re.compile(
+    r"^(.+?)\s+(?:at|@|vs\.?)\s+(.+?)(?:\s*\(.*\))?$",
+    re.IGNORECASE,
+)
+
+# Bet slip pick line: "Team -3.5 [Spread] -110" or "Team ML +150"
+_SLIP_PICK_RE = re.compile(
+    r"^(.+?)\s+([+-]\d+\.?\d*)\s*(?:ML|Moneyline)?\s*(?:[+-]\d{3,4})?",
+    re.IGNORECASE,
+)
+
+
+def _normalize_slip_text(text: str) -> str:
+    """Fix common OCR artifacts in bet slip screenshots."""
+    # '"110' or '\u201c110' → '-110' (OCR misreads minus as quote before odds)
+    return _ODDS_ARTIFACT_RE.sub(r"-\1", text)
+
+
+def _parse_as_bet_slip(raw_text: str) -> List[Dict[str, Any]]:
+    """
+    Parse a sportsbook bet slip screenshot.
+    Extracts pick(s) from the structured receipt format used by
+    DraftKings, FanDuel, BetMGM, Caesars, etc.
+    """
+    text = _normalize_slip_text(raw_text)
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    picks = []
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        # Find the Straights section or pick lines with spread/ML
+        # Look for a line with a spread/ML value that's likely a pick
+        pick_m = re.match(
+            r"^([A-Za-z][A-Za-z\s\.\-']+?)\s+([+-]\d+\.?\d*)",
+            line,
+        )
+        if pick_m:
+            team_raw = pick_m.group(1).strip()
+            spread = pick_m.group(2)
+
+            # Skip noise lines (short words, known UI text)
+            skip_words = {"spread", "moneyline", "total", "over", "under",
+                          "stake", "payout", "straights", "parlays", "share",
+                          "keep", "your", "bet", "slip", "confirmed"}
+            if team_raw.lower() in skip_words or len(team_raw) < 2:
+                i += 1
+                continue
+
+            # Extract odds — search up to 6 lines ahead (bet slips often have
+            # odds on a separate line after the pick)
+            odds = _extract_odds(line)
+            for j in range(i + 1, min(i + 7, len(lines))):
+                if odds is not None:
+                    break
+                odds = _extract_odds(lines[j])
+
+            # Look ahead for a match line ("Team at Opponent") — validate that
+            # both sides look like proper team names (not phrases like "See you at the window")
+            match_key = None
+            for j in range(i + 1, min(i + 6, len(lines))):
+                mm = _MATCH_LINE_RE.match(lines[j])
+                if mm:
+                    home = mm.group(1).strip()
+                    away = mm.group(2).strip()
+                    # Reject if either side is a short common phrase or > 4 words
+                    home_words = home.split()
+                    away_words = away.split()
+                    if (len(home_words) > 4 or len(away_words) > 4):
+                        continue
+                    # Reject common false positives
+                    false_pos = {"see", "you", "look", "come", "meet"}
+                    if home_words[0].lower() in false_pos:
+                        continue
+                    # Prefer lines where at least one side is a known team
+                    home_l, _ = detect_league_from_team(home)
+                    away_l, _ = detect_league_from_team(away)
+                    if home_l or away_l:
+                        match_key = f"{home} vs {away}"
+                        break
+                    # Accept even unknown teams if both words are capitalised
+                    if home[0].isupper() and away[0].isupper():
+                        match_key = f"{home} vs {away}"
+                        break
+
+            # Extract units from earlier lines (capper usually puts "2 units" in caption)
+            units = _extract_units(raw_text) or 1.0
+
+            team = _clean_team_name(team_raw)
+            league, sport = detect_league_from_team(team)
+            # Try match teams if we got one
+            if not league and match_key:
+                for part in re.split(r"\s+(?:vs|at|@)\s+", match_key):
+                    league, sport = detect_league_from_team(part.strip())
+                    if league:
+                        break
+            full = get_full_team_name(team)
+            pick_text = f"{team} {spread}"
+
+            picks.append(_make_pick(
+                pick_text, units, line, sport, league, match_key,
+                full or team, odds,
+            ))
+
+        i += 1
+
+    # Deduplicate — bet slips often repeat the pick in summary
+    seen: set = set()
+    deduped = []
+    for p in picks:
+        key = p["pick_text"].lower().strip()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(p)
+    return deduped
+
+
 def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
     """
     Parse raw OCR text into structured picks.
     Handles various formats from real Telegram capper screenshots.
     """
+    # Fast-path: if this looks like a sportsbook bet slip, use the slip parser
+    if _BET_SLIP_SIGNALS.search(raw_text):
+        slip_picks = _parse_as_bet_slip(raw_text)
+        if slip_picks:
+            return slip_picks
+
     picks = []
     lines = raw_text.split('\n')
 
@@ -211,7 +349,23 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
         if pick:
             picks.append(pick)
 
-    return picks
+    # Deduplicate: prefer picks with a known team_name (full name) over raw OCR variants.
+    # Key on (normalized_full_team_name, spread/odds) so "Boston Univ -128" and
+    # "Boston University -128" collapse to one entry.
+    seen: set = set()
+    deduped = []
+    for p in picks:
+        # Use the resolved full team name if available, else fall back to pick_text
+        team_key = (p.get("team_name") or p["pick_text"]).lower().strip()
+        # Extract the numeric part of the pick (spread or odds) for the key
+        num_match = re.search(r"[+-]\d+\.?\d*", p["pick_text"])
+        num_part = num_match.group(0) if num_match else ""
+        key = f"{team_key}|{num_part}"
+        if key not in seen:
+            seen.add(key)
+            deduped.append(p)
+
+    return deduped
 
 
 _SPORT_MAP = {
@@ -283,6 +437,26 @@ _SPREAD_NO_UNITS_RE = re.compile(
     r"^([A-Za-z][A-Za-z\s]*?)\s+([+-]\d+\.?\d*)(?:\s|$)",
 )
 
+# Game time pattern to strip from pick lines: "6:30pm", "9:30pm", "7pm", "10:00 PM EST"
+_GAME_TIME_RE = re.compile(r"\s+\d{1,2}(?::\d{2})?\s*[apAP][mM](?:\s*EST|PST|CST|MST)?", re.IGNORECASE)
+# Star rating chars
+_STARS_RE = re.compile(r"[\u2605\u2606\u2b50\*]{1,5}")
+
+
+def _preclean_line(line: str) -> str:
+    """Strip leading symbols, game times, and star ratings from a pick line."""
+    cleaned = re.sub(r"^[^A-Za-z0-9(]+", "", line)
+    cleaned = _GAME_TIME_RE.sub("", cleaned)
+    cleaned = _STARS_RE.sub("", cleaned)
+    return cleaned.strip()
+
+
+# Format: "Marquette (NCAAB) 1" — sharp plays with league in parens and N units
+_SHARP_PLAYS_RE = re.compile(
+    r"^(.+?)\s+\((NBA|NFL|NHL|MLB|NCAAB|NCAAF|ATP|MLS|EPL|UFC|MMA)\)\s+(\d+)$",
+    re.IGNORECASE,
+)
+
 # Format: "(LAKERS -3.5)" — no units
 _PARENS_RE = re.compile(
     r"\(?\s*([A-Z][A-Za-z\s]+?)\s*([+-]\d+\.?\d*)\s*\)?$",
@@ -297,7 +471,23 @@ def _try_parse_line(
 ) -> Optional[Dict[str, Any]]:
     """Try all patterns against a single line. Returns a pick dict or None."""
 
+    # Pre-clean: strip leading symbols and trailing game times/stars
+    line = _preclean_line(line)
+    if not line:
+        return None
+
     odds = _extract_odds(line)
+
+    # 0) Sharp plays format: "Marquette (NCAAB) 1" — team (league) N units
+    m = _SHARP_PLAYS_RE.match(line)
+    if m:
+        team = _clean_team_name(m.group(1))
+        league = m.group(2).upper()
+        units = float(m.group(3))
+        sport = _league_to_sport(league)
+        pick_text = f"{team} (sharp play)"
+        full = get_full_team_name(team)
+        return _make_pick(pick_text, units, line, sport, league, None, full or team, odds)
 
     # 1) Spread with opponent: "Indiana -6.5 (-110) v. Northwestern 10u"
     m = _SPREAD_VS_RE.match(line)
@@ -373,6 +563,9 @@ def _try_parse_line(
         direction = m.group(2)
         value = m.group(3)
         units = float(m.group(4)) if m.group(4) else (ctx_units or 1.0)
+        # Reject if prefix looks like a sentence fragment (too many words or too long)
+        if prefix and (len(prefix.split()) > 6 or len(prefix) > 50):
+            return None
         pick_text = f"{prefix} {direction} {value}".strip() if prefix else f"{direction} {value}"
         match_key = prefix if prefix else None
         # Try to detect sport from prefix teams
@@ -417,7 +610,7 @@ def _try_parse_line(
 
         return _make_pick(pick_text, ctx_units or 1.0, line, sport, league, None, full or team, odds)
 
-    # 8) Spread without units: "Nuggets -5 Alternate Line" (uses context units)
+    # 8) Spread without units: "Nuggets -5 Alternate Line" or "BYU -3.5 (2 units)"
     m = _SPREAD_NO_UNITS_RE.match(line)
     if m:
         team = _clean_team_name(m.group(1))
@@ -430,7 +623,9 @@ def _try_parse_line(
                 sport = ctx_sport
                 league = league or ctx_league
             full = get_full_team_name(team)
-            return _make_pick(pick_text, ctx_units or 1.0, line, sport, league, None, full or team, odds)
+            # Try to extract units from the rest of the line before falling back to context
+            line_units = _extract_units(line)
+            return _make_pick(pick_text, line_units or ctx_units or 1.0, line, sport, league, None, full or team, odds)
 
     return None
 

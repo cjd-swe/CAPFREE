@@ -36,6 +36,7 @@ class Pick(Base):
     profit = Column(Float, default=0.0)
     original_image_path = Column(String, nullable=True)
     raw_text = Column(String, nullable=True)
+    game_date = Column(DateTime, nullable=True)    # when the game is played (used for ESPN lookups)
     grade_source = Column(String, nullable=True)  # "manual" | "espn_api" | "auto_win"
     graded_at = Column(DateTime, nullable=True)
 

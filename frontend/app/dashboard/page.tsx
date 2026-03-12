@@ -382,8 +382,11 @@ export default function DashboardPage() {
                             <tbody className="divide-y divide-gray-50">
                                 {recentPicks.map((pick) => (
                                     <tr key={pick.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="whitespace-nowrap px-6 py-3 text-xs text-gray-400">
-                                            {new Date(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                        <td className="px-6 py-3 text-xs text-gray-400">
+                                            {pick.game_date
+                                                ? new Date(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                                : new Date(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                            }
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-3">
                                             <Link href={`/dashboard/cappers/${pick.capper?.id}`} className="text-sm font-medium text-gray-900 hover:text-green-600">

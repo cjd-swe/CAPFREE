@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
+import logging
 from .. import models, schemas, database
 from ..services.espn_service import grade_pick_with_espn, detect_pick_type, UNSUPPORTED_LEAGUES
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/picks",
@@ -30,9 +33,48 @@ def _calculate_profit(result: str, odds: Optional[int], units_risked: float) -> 
         return 0.0
 
 
+async def _find_duplicate_pick(
+    db: AsyncSession,
+    capper_id: int,
+    pick_text: str,
+    game_date: Optional[datetime],
+) -> Optional[models.Pick]:
+    """
+    Return an existing pick if one with the same capper + pick_text already
+    exists within a 7-day window (using game_date when available).
+    """
+    norm_text = pick_text.strip().lower()
+    cutoff = datetime.utcnow() - timedelta(days=7)
+
+    result = await db.execute(
+        select(models.Pick)
+        .options(selectinload(models.Pick.capper))
+        .where(
+            models.Pick.capper_id == capper_id,
+            models.Pick.date >= cutoff,
+        )
+    )
+    candidates = result.scalars().all()
+
+    for p in candidates:
+        if p.pick_text.strip().lower() != norm_text:
+            continue
+        # Match on game_date calendar day, or just text+capper if neither has a game_date
+        p_day = (p.game_date or p.date).date()
+        new_day = (game_date or datetime.utcnow()).date()
+        if p_day == new_day:
+            return p
+
+    return None
+
+
 @router.post("/", response_model=schemas.Pick)
-async def create_pick(pick: schemas.PickCreate, db: AsyncSession = Depends(database.get_db)):
-    # Check if capper exists, if not create
+async def create_pick(
+    pick: schemas.PickCreate,
+    response: Response,
+    db: AsyncSession = Depends(database.get_db),
+):
+    # Resolve or create capper
     result = await db.execute(select(models.Capper).where(models.Capper.name == pick.capper_name))
     capper = result.scalars().first()
 
@@ -41,6 +83,13 @@ async def create_pick(pick: schemas.PickCreate, db: AsyncSession = Depends(datab
         db.add(capper)
         await db.commit()
         await db.refresh(capper)
+
+    # Duplicate check — return existing pick rather than inserting a copy
+    existing = await _find_duplicate_pick(db, capper.id, pick.pick_text, pick.game_date)
+    if existing:
+        logger.info(f"Duplicate pick skipped: '{pick.pick_text}' for capper {capper.name}")
+        response.headers["X-Duplicate"] = "true"
+        return existing
 
     db_pick = models.Pick(
         capper_id=capper.id,
@@ -53,15 +102,14 @@ async def create_pick(pick: schemas.PickCreate, db: AsyncSession = Depends(datab
         result=pick.result,
         profit=pick.profit,
         original_image_path=pick.original_image_path,
-        raw_text=pick.raw_text
+        raw_text=pick.raw_text,
+        game_date=pick.game_date,
     )
     db.add(db_pick)
     await db.commit()
     await db.refresh(db_pick)
 
-    # Manually set the capper relationship to avoid lazy load error
     db_pick.capper = capper
-
     return db_pick
 
 
@@ -105,13 +153,16 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
             is_unsupported = any(u.lower() in sport_str.lower() for u in UNSUPPORTED_LEAGUES)
             is_prop = pick_type == "prop"
 
+            # Use game_date for ESPN lookups if set; fall back to upload date
+            lookup_date = pick.game_date or pick.date
+
             # Try ESPN grading first
             grade_result = None
             if not is_unsupported and league:
                 grade_result = await grade_pick_with_espn(
                     pick.pick_text,
                     league,
-                    pick.date,
+                    lookup_date,
                     games_cache,
                 )
 
@@ -130,8 +181,8 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
                 pick.graded_at = now
                 auto_win_count += 1
             else:
-                # Game not found in ESPN — auto-win only if pick is >24h old
-                age_hours = (now - pick.date).total_seconds() / 3600
+                # Game not found in ESPN — auto-win only if game_date (or upload date) is >24h ago
+                age_hours = (now - (pick.game_date or pick.date)).total_seconds() / 3600
                 if age_hours > 24:
                     pick.result = "WIN"
                     pick.profit = _calculate_profit("WIN", pick.odds, pick.units_risked)

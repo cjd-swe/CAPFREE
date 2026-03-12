@@ -11,6 +11,7 @@ router = APIRouter(
 async def upload_images(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
     all_picks: List[Dict[str, Any]] = []
     detected_capper: Optional[str] = None
+    all_raw_texts: List[str] = []
 
     for file in files:
         if not file.content_type or not file.content_type.startswith("image/"):
@@ -19,6 +20,7 @@ async def upload_images(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
         contents = await file.read()
 
         raw_text = pipeline.extract_text(contents)
+        all_raw_texts.append(raw_text)
 
         # Try to extract the capper name from the first image that yields one
         if detected_capper is None:
@@ -30,4 +32,5 @@ async def upload_images(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
     return {
         "picks": all_picks,
         "detected_capper": detected_capper,
+        "raw_text": "\n---\n".join(all_raw_texts) if all_raw_texts else None,
     }
