@@ -52,6 +52,26 @@ interface ProfitHistoryEntry {
     units_risked: number
 }
 
+function periodStats(history: ProfitHistoryEntry[], days: number) {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const slice = history.filter(p => new Date(p.date) >= cutoff)
+    if (!slice.length) return null
+    const wins = slice.filter(p => p.result === "WIN").length
+    const losses = slice.filter(p => p.result === "LOSS").length
+    const graded = wins + losses + slice.filter(p => p.result === "PUSH").length
+    const profit = slice.reduce((s, p) => s + p.profit, 0)
+    const units = slice.reduce((s, p) => s + p.units_risked, 0)
+    return {
+        picks: slice.length,
+        wins,
+        losses,
+        profit: parseFloat(profit.toFixed(2)),
+        win_rate: graded > 0 ? parseFloat((wins / graded * 100).toFixed(1)) : 0,
+        roi: units > 0 ? parseFloat((profit / units * 100).toFixed(1)) : 0,
+    }
+}
+
 export default function CapperAnalyticsPage() {
     const params = useParams()
     const capperId = params.id as string
@@ -122,6 +142,52 @@ export default function CapperAnalyticsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Period Breakdown */}
+            {profitHistory.length > 0 && (() => {
+                const periods = [
+                    { label: "Last 7 days", days: 7 },
+                    { label: "Last 30 days", days: 30 },
+                    { label: "Last 90 days", days: 90 },
+                ]
+                const rows = periods.map(p => ({ ...p, stats: periodStats(profitHistory, p.days) })).filter(p => p.stats)
+                if (!rows.length) return null
+                return (
+                    <div className="rounded-lg bg-white shadow overflow-hidden">
+                        <div className="border-b border-gray-200 px-6 py-4">
+                            <h2 className="text-lg font-medium text-gray-900">Performance by Period</h2>
+                        </div>
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Period</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Record</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Win Rate</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">ROI</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {rows.map(({ label, stats }) => (
+                                    <tr key={label} className="hover:bg-gray-50">
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-gray-900">{label}</td>
+                                        <td className="whitespace-nowrap px-6 py-3 text-sm text-gray-600">{stats!.wins}W-{stats!.losses}L</td>
+                                        <td className={`whitespace-nowrap px-6 py-3 text-sm font-medium ${stats!.win_rate > 55 ? "text-green-600" : stats!.win_rate < 50 ? "text-red-500" : "text-gray-900"}`}>
+                                            {stats!.win_rate}%
+                                        </td>
+                                        <td className={`whitespace-nowrap px-6 py-3 text-sm font-medium ${stats!.roi > 0 ? "text-green-600" : stats!.roi < 0 ? "text-red-500" : "text-gray-900"}`}>
+                                            {stats!.roi > 0 ? "+" : ""}{stats!.roi}%
+                                        </td>
+                                        <td className={`whitespace-nowrap px-6 py-3 text-sm font-semibold text-right ${stats!.profit > 0 ? "text-green-600" : stats!.profit < 0 ? "text-red-500" : "text-gray-900"}`}>
+                                            {stats!.profit > 0 ? "+" : ""}{stats!.profit}u
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            })()}
 
             {/* Profit Over Time Chart */}
             {profitHistory.length > 1 && (
