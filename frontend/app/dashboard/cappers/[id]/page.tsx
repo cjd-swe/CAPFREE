@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Target } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 
 interface Pick {
     id: number
@@ -40,41 +41,43 @@ interface CapperAnalytics {
     sport_performance: Record<string, SportPerformance>
 }
 
+interface ProfitHistoryEntry {
+    date: string
+    pick_text: string
+    result: string
+    grade_source: string | null
+    profit: number
+    cumulative_profit: number
+    sport: string
+    units_risked: number
+}
+
 export default function CapperAnalyticsPage() {
     const params = useParams()
     const capperId = params.id as string
     const [analytics, setAnalytics] = useState<CapperAnalytics | null>(null)
+    const [profitHistory, setProfitHistory] = useState<ProfitHistoryEntry[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch(`http://localhost:8000/api/analytics/capper/${capperId}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setAnalytics(data)
-                setLoading(false)
-            })
-            .catch((err) => {
-                console.error("Failed to fetch analytics:", err)
-                setLoading(false)
-            })
+        Promise.all([
+            fetch(`http://localhost:8000/api/analytics/capper/${capperId}`).then(r => r.json()),
+            fetch(`http://localhost:8000/api/analytics/capper/${capperId}/profit-history`).then(r => r.json()),
+        ]).then(([analyticsData, historyData]) => {
+            setAnalytics(analyticsData)
+            setProfitHistory(historyData)
+            setLoading(false)
+        }).catch(() => setLoading(false))
     }, [capperId])
 
-    if (loading) {
-        return <div className="text-gray-700">Loading...</div>
-    }
-
-    if (!analytics) {
-        return <div className="text-gray-700">Capper not found</div>
-    }
+    if (loading) return <div className="text-gray-700">Loading...</div>
+    if (!analytics) return <div className="text-gray-700">Capper not found</div>
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Link
-                    href="/dashboard/cappers"
-                    className="rounded-lg p-2 hover:bg-gray-200"
-                >
+                <Link href="/dashboard/cappers" className="rounded-lg p-2 hover:bg-gray-200">
                     <ArrowLeft className="h-6 w-6 text-gray-600" />
                 </Link>
                 <h1 className="text-3xl font-bold text-gray-900">{analytics.name}</h1>
@@ -120,6 +123,34 @@ export default function CapperAnalyticsPage() {
                 </div>
             </div>
 
+            {/* Profit Over Time Chart */}
+            {profitHistory.length > 1 && (
+                <div className="rounded-lg bg-white p-6 shadow">
+                    <h2 className="mb-4 text-lg font-medium text-gray-900">Profit Over Time</h2>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={profitHistory}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                                <YAxis />
+                                <Tooltip
+                                    formatter={(value: number) => [`${value > 0 ? '+' : ''}${value.toFixed(2)}u`, "Cumulative Profit"]}
+                                />
+                                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />
+                                <Line
+                                    type="monotone"
+                                    dataKey="cumulative_profit"
+                                    stroke="#16a34a"
+                                    strokeWidth={2}
+                                    dot={false}
+                                    activeDot={{ r: 5 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
             {/* Performance by Sport */}
             <div className="rounded-lg bg-white shadow">
                 <div className="border-b border-gray-200 px-6 py-4">
@@ -135,9 +166,7 @@ export default function CapperAnalyticsPage() {
                                     <div className="mt-2 space-y-1 text-sm">
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Record:</span>
-                                            <span className="font-medium">
-                                                {perf.wins}-{perf.losses}-{perf.pushes}
-                                            </span>
+                                            <span className="font-medium">{perf.wins}-{perf.losses}-{perf.pushes}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Win Rate:</span>
@@ -166,32 +195,18 @@ export default function CapperAnalyticsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Date
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Sport
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Pick
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Units
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Result
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">
-                                    Profit
-                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Sport</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Pick</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Units</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Result</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {analytics.recent_picks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-700">
-                                        No picks yet
-                                    </td>
+                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-700">No picks yet</td>
                                 </tr>
                             ) : (
                                 analytics.recent_picks.map((pick) => (
@@ -199,15 +214,9 @@ export default function CapperAnalyticsPage() {
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                                             {new Date(pick.date).toLocaleDateString()}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                            {pick.sport}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {pick.pick_text}
-                                        </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                            {pick.units_risked}u
-                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{pick.sport}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">{pick.pick_text}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{pick.units_risked}u</td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm">
                                             <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${pick.result === 'WIN' ? 'bg-green-100 text-green-800' :
                                                 pick.result === 'LOSS' ? 'bg-red-100 text-red-800' :
@@ -217,10 +226,7 @@ export default function CapperAnalyticsPage() {
                                                 {pick.result}
                                             </span>
                                         </td>
-                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' :
-                                            pick.profit < 0 ? 'text-red-600' :
-                                                'text-gray-900'
-                                            }`}>
+                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                                             {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
                                         </td>
                                     </tr>
