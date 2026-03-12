@@ -116,7 +116,18 @@ export default function UploadPage() {
             }
 
             const data = await response.json()
-            setPicks(data.picks ?? data)
+            const parsedPicks = data.picks ?? data
+
+            if (parsedPicks.length === 0) {
+                setError(
+                    "No picks found in this image. OCR processed the file but couldn't identify any picks. " +
+                    "Make sure the screenshot shows clearly formatted picks (e.g. 'Lakers -5.5 2u'). " +
+                    "Higher resolution screenshots work best."
+                )
+                return
+            }
+
+            setPicks(parsedPicks)
 
             if (data.detected_capper) {
                 setSelectedCapper(data.detected_capper)

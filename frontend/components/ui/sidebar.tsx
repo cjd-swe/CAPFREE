@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X } from "lucide-react"
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -14,28 +14,77 @@ const navigation = [
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
+interface Notification {
+    id: number
+    message: string
+    read: boolean
+    created_at: string
+}
+
 export function Sidebar() {
     const pathname = usePathname()
     const [unreadCount, setUnreadCount] = useState(0)
     const [pendingCount, setPendingCount] = useState(0)
+    const [bellOpen, setBellOpen] = useState(false)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const bellRef = useRef<HTMLDivElement>(null)
+
+    const fetchCounts = () => {
+        fetch("http://localhost:8000/api/notifications/unread-count")
+            .then(res => res.json())
+            .then(data => setUnreadCount(data.count || 0))
+            .catch(() => {})
+
+        fetch("http://localhost:8000/api/analytics/summary")
+            .then(res => res.json())
+            .then(data => setPendingCount(data.pending_picks || 0))
+            .catch(() => {})
+    }
+
+    const fetchNotifications = () => {
+        fetch("http://localhost:8000/api/notifications/")
+            .then(res => res.json())
+            .then(data => setNotifications(data))
+            .catch(() => {})
+    }
 
     useEffect(() => {
-        const fetchCounts = () => {
-            fetch("http://localhost:8000/api/notifications/unread-count")
-                .then(res => res.json())
-                .then(data => setUnreadCount(data.count || 0))
-                .catch(() => {})
-
-            fetch("http://localhost:8000/api/analytics/summary")
-                .then(res => res.json())
-                .then(data => setPendingCount(data.pending_picks || 0))
-                .catch(() => {})
-        }
-
         fetchCounts()
         const interval = setInterval(fetchCounts, 30000)
         return () => clearInterval(interval)
     }, [])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+                setBellOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handler)
+        return () => document.removeEventListener("mousedown", handler)
+    }, [])
+
+    const handleBellClick = () => {
+        if (!bellOpen) fetchNotifications()
+        setBellOpen(prev => !prev)
+    }
+
+    const handleMarkAllRead = async () => {
+        await fetch("http://localhost:8000/api/notifications/read-all", { method: "POST" })
+        setUnreadCount(0)
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    }
+
+    const timeAgo = (dateStr: string) => {
+        const diff = Date.now() - new Date(dateStr).getTime()
+        const mins = Math.floor(diff / 60000)
+        if (mins < 1) return "just now"
+        if (mins < 60) return `${mins}m ago`
+        const hrs = Math.floor(mins / 60)
+        if (hrs < 24) return `${hrs}h ago`
+        return `${Math.floor(hrs / 24)}d ago`
+    }
 
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard"
@@ -46,15 +95,73 @@ export function Sidebar() {
         <div className="flex h-full w-64 flex-col bg-gray-900 text-white">
             <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
                 <h1 className="text-xl font-bold text-green-500">SharpWatch</h1>
-                <div className="relative">
-                    <Bell className="h-5 w-5 text-gray-400 cursor-pointer hover:text-white" />
-                    {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                            {unreadCount > 9 ? "9+" : unreadCount}
-                        </span>
+
+                {/* Bell with dropdown */}
+                <div className="relative" ref={bellRef}>
+                    <button
+                        onClick={handleBellClick}
+                        className="relative rounded-md p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                        aria-label="Notifications"
+                    >
+                        <Bell className="h-5 w-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                {unreadCount > 9 ? "9+" : unreadCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {bellOpen && (
+                        <div className="absolute right-0 top-10 z-50 w-80 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                                <span className="text-sm font-semibold text-gray-900">
+                                    Notifications
+                                    {unreadCount > 0 && (
+                                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+                                            {unreadCount} new
+                                        </span>
+                                    )}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    {unreadCount > 0 && (
+                                        <button
+                                            onClick={handleMarkAllRead}
+                                            className="text-xs text-gray-400 hover:text-gray-700"
+                                        >
+                                            Mark all read
+                                        </button>
+                                    )}
+                                    <button onClick={() => setBellOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                                {notifications.length === 0 ? (
+                                    <li className="px-4 py-6 text-center text-sm text-gray-400">
+                                        No notifications yet
+                                    </li>
+                                ) : (
+                                    notifications.map(n => (
+                                        <li
+                                            key={n.id}
+                                            className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}
+                                        >
+                                            <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
+                                                <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.created_at)}</p>
+                                            </div>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        </div>
                     )}
                 </div>
             </div>
+
             <nav className="flex-1 space-y-1 px-2 py-4">
                 {navigation.map((item) => {
                     const active = isActive(item.href)
