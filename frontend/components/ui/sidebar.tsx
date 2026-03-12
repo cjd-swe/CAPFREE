@@ -112,7 +112,9 @@ export function Sidebar() {
                     </button>
 
                     {bellOpen && (
-                        <div className="absolute right-0 top-10 z-50 w-80 rounded-xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden">
+                        // Fixed to viewport: appears below the header at the right edge of the sidebar
+                        // so it's never clipped by the sidebar's layout
+                        <div className="fixed top-16 left-64 z-50 w-96 rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                                 <span className="text-sm font-semibold text-gray-900">
                                     Notifications
@@ -137,7 +139,7 @@ export function Sidebar() {
                                 </div>
                             </div>
 
-                            <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                            <ul className="max-h-[calc(100vh-5rem)] overflow-y-auto divide-y divide-gray-50">
                                 {notifications.length === 0 ? (
                                     <li className="px-4 py-6 text-center text-sm text-gray-400">
                                         No notifications yet
@@ -149,8 +151,8 @@ export function Sidebar() {
                                             className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}
                                         >
                                             <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-gray-200'}`} />
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-800 leading-snug break-words">{n.message}</p>
                                                 <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.created_at)}</p>
                                             </div>
                                         </li>
