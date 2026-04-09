@@ -7,6 +7,7 @@ import {
     Tooltip, ResponsiveContainer, ReferenceLine, Cell
 } from "recharts"
 import { TrendingUp, TrendingDown, Target, Trophy, Clock, ChevronDown } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -143,9 +144,9 @@ export default function AnalyticsPage() {
     // Load cappers + overall data once
     useEffect(() => {
         Promise.all([
-            fetch("http://localhost:8000/api/analytics/cappers").then(r => r.json()),
-            fetch("http://localhost:8000/api/analytics/summary").then(r => r.json()),
-            fetch("http://localhost:8000/api/analytics/sport-performance").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/sport-performance").then(r => r.json()),
         ]).then(([c, s, sp]) => {
             setCappers(c)
             setSummary(s)
@@ -157,7 +158,7 @@ export default function AnalyticsPage() {
     // Load daily profit when days changes (overall view only)
     useEffect(() => {
         if (selectedId !== "all") return
-        fetch(`http://localhost:8000/api/analytics/daily-profit?days=${days}`)
+        fetch(`${API_URL}/api/analytics/daily-profit?days=${days}`)
             .then(r => r.json())
             .then(setDailyProfit)
             .catch(() => {})
@@ -171,8 +172,8 @@ export default function AnalyticsPage() {
             return
         }
         Promise.all([
-            fetch(`http://localhost:8000/api/analytics/capper/${selectedId}`).then(r => r.json()),
-            fetch(`http://localhost:8000/api/analytics/capper/${selectedId}/profit-history`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${selectedId}`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${selectedId}/profit-history`).then(r => r.json()),
         ]).then(([detail, history]) => {
             setCapperDetail(detail)
             setProfitHistory(history)

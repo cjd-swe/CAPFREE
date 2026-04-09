@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Upload, FileText, Check, AlertCircle, Plus, X, ImageIcon } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 type TabType = "upload" | "manual"
 
@@ -51,7 +52,7 @@ export default function UploadPage() {
 
     const fetchCappers = async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/settings/cappers")
+            const response = await fetch(API_URL + "/api/settings/cappers")
             if (response.ok) {
                 const data = await response.json()
                 setCappers(data)
@@ -119,7 +120,7 @@ export default function UploadPage() {
         })
 
         try {
-            const response = await fetch("http://localhost:8000/api/upload/", {
+            const response = await fetch(API_URL + "/api/upload/", {
                 method: "POST",
                 body: formData,
             })
@@ -193,7 +194,7 @@ export default function UploadPage() {
                 game_date: formData.game_date ? new Date(formData.game_date).toISOString() : null,
             }
 
-            const response = await fetch("http://localhost:8000/api/picks/", {
+            const response = await fetch(API_URL + "/api/picks/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -267,7 +268,7 @@ export default function UploadPage() {
                     game_date: gameDate ? new Date(gameDate).toISOString() : null,
                 }
 
-                return fetch("http://localhost:8000/api/picks/", {
+                return fetch(API_URL + "/api/picks/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

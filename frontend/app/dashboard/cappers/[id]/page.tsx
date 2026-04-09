@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Target } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
+import { API_URL } from "@/lib/api"
 
 interface Pick {
     id: number
@@ -85,8 +86,8 @@ export default function CapperAnalyticsPage() {
 
     useEffect(() => {
         Promise.all([
-            fetch(`http://localhost:8000/api/analytics/capper/${capperId}`).then(r => r.json()),
-            fetch(`http://localhost:8000/api/analytics/capper/${capperId}/profit-history`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${capperId}`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${capperId}/profit-history`).then(r => r.json()),
         ]).then(([analyticsData, historyData]) => {
             setAnalytics(analyticsData)
             setNotes(analyticsData.notes ?? "")
@@ -98,7 +99,7 @@ export default function CapperAnalyticsPage() {
     const saveNotes = async () => {
         setSavingNotes(true)
         try {
-            await fetch(`http://localhost:8000/api/settings/cappers/${capperId}`, {
+            await fetch(`${API_URL}/api/settings/cappers/${capperId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notes }),

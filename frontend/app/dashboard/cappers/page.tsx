@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronUp, ChevronDown, GitCompare } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 interface CapperStat {
     id: number
@@ -29,7 +30,7 @@ export default function CappersPage() {
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/analytics/cappers")
+        fetch(API_URL + "/api/analytics/cappers")
             .then((res) => res.json())
             .then((data) => {
                 setCappers(data)

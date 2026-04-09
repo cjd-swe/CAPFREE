@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Zap, TrendingUp, TrendingDown, CheckCircle, XCircle, MinusCircle, Clock, ArrowRight, Bell, Users } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 interface SummaryStats {
     total_profit: number
@@ -53,10 +54,10 @@ export default function DashboardPage() {
 
     useEffect(() => {
         Promise.all([
-            fetch("http://localhost:8000/api/analytics/summary").then(r => r.json()),
-            fetch("http://localhost:8000/api/analytics/cappers").then(r => r.json()),
-            fetch("http://localhost:8000/api/picks/?limit=10").then(r => r.json()),
-            fetch("http://localhost:8000/api/notifications/").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
+            fetch(API_URL + "/api/picks/?limit=10").then(r => r.json()),
+            fetch(API_URL + "/api/notifications/").then(r => r.json()),
         ]).then(([summaryData, cappersData, picksData, notifsData]) => {
             setStats(summaryData)
             setCappers(cappersData.slice(0, 5))
@@ -68,10 +69,10 @@ export default function DashboardPage() {
 
     const refreshAll = () => {
         Promise.all([
-            fetch("http://localhost:8000/api/analytics/summary").then(r => r.json()),
-            fetch("http://localhost:8000/api/analytics/cappers").then(r => r.json()),
-            fetch("http://localhost:8000/api/picks/?limit=10").then(r => r.json()),
-            fetch("http://localhost:8000/api/notifications/").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
+            fetch(API_URL + "/api/picks/?limit=10").then(r => r.json()),
+            fetch(API_URL + "/api/notifications/").then(r => r.json()),
         ]).then(([summaryData, cappersData, picksData, notifsData]) => {
             setStats(summaryData)
             setCappers(cappersData.slice(0, 5))
@@ -84,7 +85,7 @@ export default function DashboardPage() {
         setAutoGrading(true)
         setGradeResult(null)
         try {
-            const res = await fetch("http://localhost:8000/api/picks/auto-grade", { method: "POST" })
+            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST" })
             if (res.ok) {
                 const data: AutoGradeResult = await res.json()
                 setGradeResult(data)
@@ -99,8 +100,8 @@ export default function DashboardPage() {
     }
 
     const handleMarkAllRead = async () => {
-        await fetch("http://localhost:8000/api/notifications/read-all", { method: "POST" })
-        fetch("http://localhost:8000/api/notifications/").then(r => r.json()).then(setNotifications)
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
+        fetch(API_URL + "/api/notifications/").then(r => r.json()).then(setNotifications)
     }
 
     const timeAgo = (dateStr: string) => {

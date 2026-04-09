@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap, Download } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 interface Capper {
     id: number
@@ -57,7 +58,7 @@ export default function PicksPage() {
 
     const fetchCappers = async () => {
         try {
-            const res = await fetch("http://localhost:8000/api/settings/cappers")
+            const res = await fetch(API_URL + "/api/settings/cappers")
             const data = await res.json()
             setCappers(data)
         } catch (err) {
@@ -67,9 +68,9 @@ export default function PicksPage() {
 
     const fetchPicks = async () => {
         try {
-            let url = "http://localhost:8000/api/picks/?limit=500"
+            let url = API_URL + "/api/picks/?limit=500"
             if (selectedCapper !== "all") {
-                url = `http://localhost:8000/api/picks/by-capper/${selectedCapper}`
+                url = `${API_URL}/api/picks/by-capper/${selectedCapper}`
             }
             const res = await fetch(url)
             const data = await res.json()
@@ -83,7 +84,7 @@ export default function PicksPage() {
 
     const gradePick = async (pickId: number, result: "WIN" | "LOSS" | "PUSH") => {
         try {
-            const res = await fetch(`http://localhost:8000/api/picks/${pickId}/grade`, {
+            const res = await fetch(`${API_URL}/api/picks/${pickId}/grade`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ result })
@@ -98,7 +99,7 @@ export default function PicksPage() {
         setAutoGrading(true)
         setGradeResult(null)
         try {
-            const res = await fetch("http://localhost:8000/api/picks/auto-grade", { method: "POST" })
+            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST" })
             if (res.ok) {
                 const data: AutoGradeResult = await res.json()
                 setGradeResult(data)
@@ -131,7 +132,7 @@ export default function PicksPage() {
         if (selectedIds.size === 0) return
         setBulkGrading(true)
         try {
-            const res = await fetch("http://localhost:8000/api/picks/bulk-grade", {
+            const res = await fetch(API_URL + "/api/picks/bulk-grade", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ pick_ids: Array.from(selectedIds), result }),
@@ -150,7 +151,7 @@ export default function PicksPage() {
     const handleDeletePick = async (pickId: number) => {
         if (!confirm("Are you sure you want to delete this pick?")) return
         try {
-            const response = await fetch(`http://localhost:8000/api/picks/${pickId}`, { method: "DELETE" })
+            const response = await fetch(`${API_URL}/api/picks/${pickId}`, { method: "DELETE" })
             if (response.ok) fetchPicks()
         } catch (err) {
             console.error("Error deleting pick:", err)

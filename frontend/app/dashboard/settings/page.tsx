@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Trash2, Edit2, Plus, X } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 interface Capper {
     id: number
@@ -23,7 +24,7 @@ export default function SettingsPage() {
 
     const fetchCappers = async () => {
         try {
-            const res = await fetch("http://localhost:8000/api/settings/cappers")
+            const res = await fetch(API_URL + "/api/settings/cappers")
             const data = await res.json()
             setCappers(data)
         } catch (err) {
@@ -36,7 +37,7 @@ export default function SettingsPage() {
     const handleAddCapper = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const res = await fetch("http://localhost:8000/api/settings/cappers", {
+            const res = await fetch(API_URL + "/api/settings/cappers", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -63,7 +64,7 @@ export default function SettingsPage() {
         if (!editingCapper) return
 
         try {
-            const res = await fetch(`http://localhost:8000/api/settings/cappers/${editingCapper.id}`, {
+            const res = await fetch(`${API_URL}/api/settings/cappers/${editingCapper.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -91,7 +92,7 @@ export default function SettingsPage() {
         }
 
         try {
-            const res = await fetch(`http://localhost:8000/api/settings/cappers/${id}`, {
+            const res = await fetch(`${API_URL}/api/settings/cappers/${id}`, {
                 method: "DELETE"
             })
             if (res.ok) {

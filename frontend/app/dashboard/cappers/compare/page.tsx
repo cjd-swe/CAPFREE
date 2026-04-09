@@ -7,6 +7,7 @@ import {
     RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
     Tooltip
 } from "recharts"
+import { API_URL } from "@/lib/api"
 
 interface CapperStat {
     id: number
@@ -83,20 +84,20 @@ export default function ComparePage() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/analytics/cappers")
+        fetch(API_URL + "/api/analytics/cappers")
             .then(r => r.json())
             .then(setCappers)
     }, [])
 
     useEffect(() => {
         if (!selectedA) { setHistoryA([]); return }
-        fetch(`http://localhost:8000/api/analytics/capper/${selectedA}/profit-history`)
+        fetch(`${API_URL}/api/analytics/capper/${selectedA}/profit-history`)
             .then(r => r.json()).then(setHistoryA).catch(() => setHistoryA([]))
     }, [selectedA])
 
     useEffect(() => {
         if (!selectedB) { setHistoryB([]); return }
-        fetch(`http://localhost:8000/api/analytics/capper/${selectedB}/profit-history`)
+        fetch(`${API_URL}/api/analytics/capper/${selectedB}/profit-history`)
             .then(r => r.json()).then(setHistoryB).catch(() => setHistoryB([]))
     }, [selectedB])
 

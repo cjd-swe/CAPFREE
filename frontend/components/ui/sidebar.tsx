@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X } from "lucide-react"
+import { API_URL } from "@/lib/api"
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -33,13 +34,13 @@ export function Sidebar() {
 
     const fetchCounts = async () => {
         try {
-            const res = await fetch("http://localhost:8000/api/notifications/unread-count")
+            const res = await fetch(API_URL + "/api/notifications/unread-count")
             const data = await res.json()
             const newCount: number = data.count || 0
 
             // If count went up since last poll, fetch the new unread notifications for popup
             if (prevUnreadRef.current !== null && newCount > prevUnreadRef.current) {
-                const notifRes = await fetch("http://localhost:8000/api/notifications/")
+                const notifRes = await fetch(API_URL + "/api/notifications/")
                 const allNotifs: Notification[] = await notifRes.json()
                 const fresh = allNotifs.filter(n => !n.read)
                 if (fresh.length > 0) setPopupNotifs(fresh)
@@ -48,21 +49,21 @@ export function Sidebar() {
             setUnreadCount(newCount)
         } catch {}
 
-        fetch("http://localhost:8000/api/analytics/summary")
+        fetch(API_URL + "/api/analytics/summary")
             .then(res => res.json())
             .then(data => setPendingCount(data.pending_picks || 0))
             .catch(() => {})
     }
 
     const fetchNotifications = () => {
-        fetch("http://localhost:8000/api/notifications/")
+        fetch(API_URL + "/api/notifications/")
             .then(res => res.json())
             .then(data => setNotifications(data))
             .catch(() => {})
     }
 
     const dismissPopup = async () => {
-        await fetch("http://localhost:8000/api/notifications/read-all", { method: "POST" })
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
         setPopupNotifs([])
         setUnreadCount(0)
         prevUnreadRef.current = 0
@@ -91,7 +92,7 @@ export function Sidebar() {
     }
 
     const handleMarkAllRead = async () => {
-        await fetch("http://localhost:8000/api/notifications/read-all", { method: "POST" })
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
         setUnreadCount(0)
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     }
