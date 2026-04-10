@@ -22,7 +22,15 @@ import sys
 import os
 sys.path.append(os.getcwd())
 from app.models import Base
+from app.database import resolve_database_url
+from app.config import settings as app_settings
 target_metadata = Base.metadata
+
+# Override the sqlalchemy.url from alembic.ini with whatever the app resolves
+# (env-var-driven DATABASE_URL, defaulting to local SQLite). This keeps the
+# migration target in sync with the runtime database so one env var drives
+# both.
+config.set_main_option("sqlalchemy.url", resolve_database_url(app_settings.DATABASE_URL))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
