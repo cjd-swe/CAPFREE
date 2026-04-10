@@ -78,6 +78,32 @@ The leaderboard exposes **Confirmed Win Rate** (espn_api + manual only) vs **Tot
 
 `POST /api/picks/auto-grade` (in `routers/picks.py`) batches PENDING picks by `(league, date)` so one ESPN HTTP call covers N picks from the same day. Preserve that batching when editing.
 
+### Database — SQLite locally, Postgres in prod
+
+`database.py` reads `DATABASE_URL` from the app config and normalises it via
+`resolve_database_url()`:
+
+- **unset** → local SQLite at `backend/sharpwatch.db` (default for dev)
+- `postgres://...` or `postgresql://...` → rewritten to `postgresql+asyncpg://...`
+
+So a Supabase "URI" connection string can be pasted into `.env` verbatim.
+Alembic's `env.py` calls the same resolver, so `alembic upgrade head` always
+targets whatever database the app is pointed at — one env var drives both
+runtime and migrations.
+
+To migrate a fresh Supabase project:
+
+```bash
+# in backend/.env
+DATABASE_URL=postgresql://postgres:PASSWORD@db.xxxx.supabase.co:5432/postgres
+
+cd backend
+alembic upgrade head   # creates cappers / picks / notifications / telegram_queue
+```
+
+The `on_event("startup")` in `main.py` also runs `Base.metadata.create_all`,
+which is idempotent and will no-op against an already-migrated schema.
+
 ### Backend layout (`backend/app/`)
 
 - `main.py` — FastAPI app; mounts routers under `/api`; on startup runs `Base.metadata.create_all` **and** kicks off the Telegram polling task (only if `TELEGRAM_BOT_TOKEN` is set and not the placeholder).

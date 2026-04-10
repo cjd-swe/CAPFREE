@@ -1,0 +1,67 @@
+---
+title: SharpWatch — Roadmap to Hosted Automation
+---
+
+flowchart TD
+    subgraph done["DONE"]
+        style done fill:#d1fae5,stroke:#059669
+
+        S1A["fix: untrack .db files\n(capper persistence bug)"]
+        S1B["feat: env-var CORS_ORIGINS\n(backend)"]
+        S1C["feat: env-var NEXT_PUBLIC_API_URL\n(frontend, 9 files refactored)"]
+        S1D["docs: CLAUDE.md"]
+        S2A["feat: DATABASE_URL env var\n+ resolve_database_url()"]
+        S2B["feat: asyncpg driver added"]
+        S2C["feat: alembic reads DATABASE_URL\nfrom app config"]
+        S2D["docs: Supabase setup in\nCLAUDE.md + .env.example"]
+    end
+
+    subgraph s3["STAGE 3 — Auth"]
+        style s3 fill:#fef9c3,stroke:#ca8a04
+        S3A["APP_PASSWORD env var +\nFastAPI auth dependency"]
+        S3B["Frontend login page +\ncookie/token gate"]
+    end
+
+    subgraph s4["STAGE 4 — Image + OCR"]
+        style s4 fill:#fef9c3,stroke:#ca8a04
+        S4A["Persist uploaded images\nto disk / Supabase Storage"]
+        S4B["Re-enable OCR preprocessing\nin pipeline.py"]
+        S4C["Re-run + fix test suite\nif fixtures break"]
+    end
+
+    subgraph s5["STAGE 5 — Telegram Bot"]
+        style s5 fill:#fef9c3,stroke:#ca8a04
+        S5A["Finish telegram_bot.py\nphoto handler end-to-end"]
+        S5B["OCR -> parser -> create pick\n+ notification row"]
+        S5C["Capper auto-detect from\nTelegram sender name"]
+    end
+
+    subgraph s6["STAGE 6 — Deploy to Render"]
+        style s6 fill:#e0e7ff,stroke:#4f46e5
+        S6A["Render web service\n(FastAPI + uvicorn)"]
+        S6B["Render background worker\n(Telegram polling)"]
+        S6C["Vercel or Render Static\n(Next.js frontend)"]
+        S6D["Wire env vars:\nCORS, API_URL, DATABASE_URL,\nAPP_PASSWORD, BOT_TOKEN"]
+    end
+
+    subgraph s7["STAGE 7 — Auto-Grade Cron"]
+        style s7 fill:#e0e7ff,stroke:#4f46e5
+        S7A["Render cron job\nPOST /api/picks/auto-grade\nevery hour"]
+    end
+
+    %% Dependencies
+    S1A --> S2A
+    S1B --> S6D
+    S1C --> S6D
+    S2A --> S6A
+    S2B --> S6A
+    S2C --> S6A
+    S3A --> S6D
+    S3B --> S6C
+    S4A --> S6A
+    S5A --> S6B
+    S5B --> S6B
+    S5C --> S5B
+    S6A --> S7A
+    S6B --> S7A
+    S6C --> S7A

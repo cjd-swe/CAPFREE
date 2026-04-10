@@ -312,20 +312,44 @@ python -m pytest tests/ -q
 
 ---
 
+## Work Done So Far
+
+See `plan.mmd` for the full visual roadmap (Mermaid diagram).
+
+### Stage 1 — Gotcha fixes *(complete)*
+
+- **fix: capper persistence bug** — `backend/sharpwatch.db` was tracked in git despite `*.db` being in `.gitignore`. Any git stash/checkout/reset would roll the DB back to the committed snapshot, making newly-added cappers disappear. Untracked via `git rm --cached`.
+- **feat: env-var CORS origins** — `CORS_ORIGINS` env var in `backend/app/config.py` (comma-separated, default `http://localhost:3000`). Replaced hardcoded list in `main.py`.
+- **feat: env-var frontend API URL** — `NEXT_PUBLIC_API_URL` read by `frontend/lib/api.ts`. All 9 files that hardcoded `http://localhost:8000` now import `API_URL`. Frontend `.env.example` added.
+- **docs: CLAUDE.md** — orientation map for AI-assisted development.
+
+### Stage 2 — Postgres support *(complete)*
+
+- **feat: DATABASE_URL env var** — `database.py` reads `DATABASE_URL` from settings, normalises provider-style URLs (`postgres://`, `postgresql://`) to `postgresql+asyncpg://`, falls back to local SQLite when unset. Local dev unchanged.
+- **feat: asyncpg driver** — added to `requirements.txt`. Engine auto-selects `asyncpg` when given a Postgres URL.
+- **feat: alembic reads DATABASE_URL** — `alembic/env.py` calls the same `resolve_database_url()` so migrations + runtime share one env var.
+- **docs: .env.example** — documents `DATABASE_URL` with Supabase copy-paste instructions.
+
+---
+
 ## Known Issues / Incomplete Features
 
 - **Image persistence** — `original_image_path` is stored but images are not saved to disk
 - **OCR preprocessing** — Grayscale/threshold preprocessing is commented out in `pipeline.py`; re-enabling it would improve accuracy on noisy images
 - **No authentication** — All routes are publicly accessible
-- **Hardcoded API URL** — Frontend fetches from `http://localhost:8000` (not environment-variable-driven)
 - **No data export** — No CSV/PDF export of picks or stats
 
 ---
 
 ## Roadmap
 
+- [x] ~~Environment variable config for frontend API URL~~
+- [x] ~~Fix capper persistence (db tracked in git)~~
+- [x] ~~Postgres support via DATABASE_URL env var~~
+- [ ] Add authentication (password gate)
 - [ ] Enable OCR preprocessing for better extraction quality on low-contrast images
-- [ ] Persist uploaded images to disk with served static paths
-- [ ] Environment variable config for frontend API URL
+- [ ] Persist uploaded images to disk / cloud storage
+- [ ] Finish Telegram bot — auto-ingest photos end-to-end
+- [ ] Deploy to Render (backend + Telegram worker) + Vercel/Render (frontend)
+- [ ] Auto-grade cron job (hourly `POST /api/picks/auto-grade`)
 - [ ] Add CSV export for picks and analytics
-- [ ] Add authentication (API key or password gate)
