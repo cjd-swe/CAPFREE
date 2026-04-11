@@ -18,7 +18,7 @@ A sports picks tracking and analytics platform. Upload screenshots of picks from
 
 | Layer | Technology |
 |---|---|
-| Backend | Python 3.8 · FastAPI · SQLAlchemy (async) · SQLite |
+| Backend | Python 3.8 · FastAPI · SQLAlchemy (async) · PostgreSQL (Supabase) |
 | OCR | Tesseract (pytesseract) · OpenCV · Pillow |
 | ESPN Grading | ESPN unofficial scoreboard API (no key required) · httpx |
 | Telegram | python-telegram-bot (polling mode for local dev) |
@@ -61,8 +61,7 @@ CAPFREE/
 │   │   └── test_pipeline.py     # 7 OCR pipeline + end-to-end tests  (75 total)
 │   ├── alembic/                 # DB migration history
 │   ├── alembic.ini
-│   ├── requirements.txt
-│   └── sharpwatch.db            # SQLite database file
+│   └── requirements.txt
 │
 ├── frontend/
 │   ├── app/
@@ -283,13 +282,17 @@ The bot runs in **polling mode** (no public URL required for local dev).
 cd backend
 source venv/bin/activate      # or: python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
 
-# Optional: configure Telegram
-echo "TELEGRAM_BOT_TOKEN=your_token_here" > .env
+# Required: copy .env.example and set DATABASE_URL to your Supabase connection string
+cp .env.example .env
+# Edit .env — set DATABASE_URL (see .env.example for format)
+
+# Apply migrations
+alembic upgrade head
 
 uvicorn app.main:app --reload --port 8000
 ```
 
-The SQLite database is created automatically on first startup (SQLAlchemy `create_all`). Alembic migrations are tracked in `alembic/versions/` and can be applied with `alembic upgrade head` if you have Alembic installed.
+`DATABASE_URL` is required — the app will not start without it. See `.env.example` for Supabase connection string format. Tables are also auto-created on startup via `Base.metadata.create_all` (idempotent).
 
 ### Frontend
 ```bash
@@ -325,9 +328,10 @@ See `plan.mmd` for the full visual roadmap (Mermaid diagram).
 
 ### Stage 2 — Postgres support *(complete)*
 
-- **feat: DATABASE_URL env var** — `database.py` reads `DATABASE_URL` from settings, normalises provider-style URLs (`postgres://`, `postgresql://`) to `postgresql+asyncpg://`, falls back to local SQLite when unset. Local dev unchanged.
-- **feat: asyncpg driver** — added to `requirements.txt`. Engine auto-selects `asyncpg` when given a Postgres URL.
+- **feat: DATABASE_URL env var** — `database.py` reads `DATABASE_URL` from settings, normalises provider-style URLs (`postgres://`, `postgresql://`) to `postgresql+asyncpg://`. Required — no SQLite fallback.
+- **feat: asyncpg driver** — added to `requirements.txt`. `aiosqlite` removed.
 - **feat: alembic reads DATABASE_URL** — `alembic/env.py` calls the same `resolve_database_url()` so migrations + runtime share one env var.
+- **feat: two Supabase projects** — `sharpwatch-dev` (local dev) and `sharpwatch-prod` (production). Both Postgres, no dialect drift.
 - **docs: .env.example** — documents `DATABASE_URL` with Supabase copy-paste instructions.
 
 ---
@@ -346,6 +350,7 @@ See `plan.mmd` for the full visual roadmap (Mermaid diagram).
 - [x] ~~Environment variable config for frontend API URL~~
 - [x] ~~Fix capper persistence (db tracked in git)~~
 - [x] ~~Postgres support via DATABASE_URL env var~~
+- [x] ~~Database unification — Supabase dev + prod, no SQLite~~
 - [ ] Add authentication (password gate)
 - [ ] Enable OCR preprocessing for better extraction quality on low-contrast images
 - [ ] Persist uploaded images to disk / cloud storage

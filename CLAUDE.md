@@ -78,15 +78,27 @@ The leaderboard exposes **Confirmed Win Rate** (espn_api + manual only) vs **Tot
 
 `POST /api/picks/auto-grade` (in `routers/picks.py`) batches PENDING picks by `(league, date)` so one ESPN HTTP call covers N picks from the same day. Preserve that batching when editing.
 
-### Database — SQLite locally, Postgres in prod
+### Database — Supabase Postgres (dev + prod)
+
+Two Supabase projects: `sharpwatch-dev` and `sharpwatch-prod`. Every
+environment runs Postgres — there is no SQLite fallback. `DATABASE_URL` is
+**required** in `backend/.env`; the app raises `RuntimeError` on startup if
+it's missing.
 
 `database.py` reads `DATABASE_URL` from the app config and normalises it via
 `resolve_database_url()`:
 
-- **unset** → local SQLite at `backend/sharpwatch.db` (default for dev)
 - `postgres://...` or `postgresql://...` → rewritten to `postgresql+asyncpg://...`
+- Already-qualified URLs (e.g. `postgresql+asyncpg://...`) pass through untouched.
 
-So a Supabase "URI" connection string can be pasted into `.env` verbatim.
+Paste the Supabase "URI" connection string verbatim — the driver prefix is
+added automatically.
+
+| Environment | Supabase project | Connection type |
+|---|---|---|
+| Local dev | `sharpwatch-dev` (`db.jpxkywxrcuxvfwgyygxs.supabase.co`) | Direct connection |
+| Production | `sharpwatch-prod` (`db.oznsiignyfapeppkfjyq.supabase.co`) | Transaction pooler |
+
 Alembic's `env.py` calls the same resolver, so `alembic upgrade head` always
 targets whatever database the app is pointed at — one env var drives both
 runtime and migrations.
@@ -127,4 +139,4 @@ Routing is Next.js App Router. The dashboard layout wraps every page with a side
 - **OCR preprocessing is commented out** in `ocr/pipeline.py`. Re-enabling grayscale/threshold would improve accuracy but may break parser tests that depend on specific OCR output — re-run the full `tests/` suite if you touch it.
 - **No authentication.** All routes are public. Don't assume a `current_user` exists anywhere.
 - The Telegram bot skeleton only runs if a real token is in `backend/.env`. Without it, the polling task is silently skipped at startup — a missing bot is not an error.
-- `sharpwatch.db` is checked into the repo and contains development data; treat it as disposable but don't `rm` it without checking with the user.
+- `DATABASE_URL` is **required**. The app will not start without it. See `.env.example` for the Supabase connection string format.

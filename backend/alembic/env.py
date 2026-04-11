@@ -30,7 +30,11 @@ target_metadata = Base.metadata
 # (env-var-driven DATABASE_URL, defaulting to local SQLite). This keeps the
 # migration target in sync with the runtime database so one env var drives
 # both.
-config.set_main_option("sqlalchemy.url", resolve_database_url(app_settings.DATABASE_URL))
+# Escape % for configparser interpolation (e.g. %40 in URL-encoded passwords)
+config.set_main_option(
+    "sqlalchemy.url",
+    resolve_database_url(app_settings.DATABASE_URL).replace("%", "%%"),
+)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
