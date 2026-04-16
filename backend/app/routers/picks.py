@@ -4,7 +4,6 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
-import asyncio
 import logging
 from .. import models, schemas, database
 from ..services.espn_service import grade_pick_with_espn, detect_pick_type, UNSUPPORTED_LEAGUES
