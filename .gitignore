@@ -33,3 +33,12 @@ frontend/node_modules/
 .idea/
 *.swp
 *.swo
+
+# Claude Code / agent tooling
+.claude/
+.agents/
+.mcp.json
+skills-lock.json
+
+# Local image scratchpad
+imgs/
