@@ -1,7 +1,8 @@
 import asyncio
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
+from .auth import router as auth_router, require_auth
 from .routers import picks, upload, telegram, analytics, settings, notifications
 from .config import settings as app_settings
 
@@ -26,12 +27,16 @@ async def startup():
         asyncio.create_task(start_polling())
 
 
-app.include_router(picks.router, prefix="/api")
-app.include_router(upload.router, prefix="/api")
-app.include_router(telegram.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
-app.include_router(settings.router, prefix="/api")
-app.include_router(notifications.router, prefix="/api")
+# Auth routes are public (login/logout/me)
+app.include_router(auth_router, prefix="/api")
+
+# All other routes require auth (no-op when APP_PASSWORD is empty)
+app.include_router(picks.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(upload.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(telegram.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(analytics.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(settings.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(notifications.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 
 @app.get("/")

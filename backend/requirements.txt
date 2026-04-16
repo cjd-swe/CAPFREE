@@ -4,6 +4,7 @@ sqlalchemy[asyncio]
 asyncpg
 pydantic
 pydantic-settings
+pyjwt
 python-multipart
 python-telegram-bot
 pytesseract

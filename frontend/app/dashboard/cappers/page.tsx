@@ -30,7 +30,7 @@ export default function CappersPage() {
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
     useEffect(() => {
-        fetch(API_URL + "/api/analytics/cappers")
+        fetch(API_URL + "/api/analytics/cappers", { credentials: "include" })
             .then((res) => res.json())
             .then((data) => {
                 setCappers(data)

@@ -52,7 +52,7 @@ export default function UploadPage() {
 
     const fetchCappers = async () => {
         try {
-            const response = await fetch(API_URL + "/api/settings/cappers")
+            const response = await fetch(API_URL + "/api/settings/cappers", { credentials: "include" })
             if (response.ok) {
                 const data = await response.json()
                 setCappers(data)
@@ -123,6 +123,7 @@ export default function UploadPage() {
             const response = await fetch(API_URL + "/api/upload/", {
                 method: "POST",
                 body: formData,
+                credentials: "include",
             })
 
             if (!response.ok) {
@@ -200,6 +201,7 @@ export default function UploadPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),
+                credentials: "include",
             })
 
             if (!response.ok) {
@@ -274,6 +276,7 @@ export default function UploadPage() {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(payload),
+                    credentials: "include",
                 })
             })
 

@@ -9,3 +9,8 @@ export function apiUrl(path: string): string {
     const normalized = path.startsWith("/") ? path : `/${path}`
     return `${API_URL}${normalized}`
 }
+
+/** Fetch wrapper that includes credentials (auth cookie) automatically. */
+export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+    return fetch(apiUrl(path), { credentials: "include", ...init })
+}

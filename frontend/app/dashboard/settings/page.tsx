@@ -24,7 +24,7 @@ export default function SettingsPage() {
 
     const fetchCappers = async () => {
         try {
-            const res = await fetch(API_URL + "/api/settings/cappers")
+            const res = await fetch(API_URL + "/api/settings/cappers", { credentials: "include" })
             const data = await res.json()
             setCappers(data)
         } catch (err) {
@@ -43,7 +43,8 @@ export default function SettingsPage() {
                 body: JSON.stringify({
                     name: formData.name,
                     telegram_chat_id: formData.telegram_chat_id || null
-                })
+                }),
+                credentials: "include",
             })
             if (res.ok) {
                 setFormData({ name: "", telegram_chat_id: "" })
@@ -70,7 +71,8 @@ export default function SettingsPage() {
                 body: JSON.stringify({
                     name: formData.name,
                     telegram_chat_id: formData.telegram_chat_id || null
-                })
+                }),
+                credentials: "include",
             })
             if (res.ok) {
                 setFormData({ name: "", telegram_chat_id: "" })
@@ -93,7 +95,8 @@ export default function SettingsPage() {
 
         try {
             const res = await fetch(`${API_URL}/api/settings/cappers/${id}`, {
-                method: "DELETE"
+                method: "DELETE",
+                credentials: "include",
             })
             if (res.ok) {
                 fetchCappers()

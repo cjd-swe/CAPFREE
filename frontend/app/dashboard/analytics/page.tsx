@@ -144,9 +144,9 @@ export default function AnalyticsPage() {
     // Load cappers + overall data once
     useEffect(() => {
         Promise.all([
-            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
-            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
-            fetch(API_URL + "/api/analytics/sport-performance").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/analytics/sport-performance", { credentials: "include" }).then(r => r.json()),
         ]).then(([c, s, sp]) => {
             setCappers(c)
             setSummary(s)
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
     // Load daily profit when days changes (overall view only)
     useEffect(() => {
         if (selectedId !== "all") return
-        fetch(`${API_URL}/api/analytics/daily-profit?days=${days}`)
+        fetch(`${API_URL}/api/analytics/daily-profit?days=${days}`, { credentials: "include" })
             .then(r => r.json())
             .then(setDailyProfit)
             .catch(() => {})
@@ -172,8 +172,8 @@ export default function AnalyticsPage() {
             return
         }
         Promise.all([
-            fetch(`${API_URL}/api/analytics/capper/${selectedId}`).then(r => r.json()),
-            fetch(`${API_URL}/api/analytics/capper/${selectedId}/profit-history`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${selectedId}`, { credentials: "include" }).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${selectedId}/profit-history`, { credentials: "include" }).then(r => r.json()),
         ]).then(([detail, history]) => {
             setCapperDetail(detail)
             setProfitHistory(history)

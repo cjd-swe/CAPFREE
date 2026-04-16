@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut } from "lucide-react"
+import { API_URL, apiUrl } from "@/lib/api"
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -24,6 +24,7 @@ interface Notification {
 
 export function Sidebar() {
     const pathname = usePathname()
+    const router = useRouter()
     const [unreadCount, setUnreadCount] = useState(0)
     const [pendingCount, setPendingCount] = useState(0)
     const [bellOpen, setBellOpen] = useState(false)
@@ -34,13 +35,14 @@ export function Sidebar() {
 
     const fetchCounts = async () => {
         try {
-            const res = await fetch(API_URL + "/api/notifications/unread-count")
+            const res = await fetch(API_URL + "/api/notifications/unread-count", { credentials: "include" })
+            if (res.status === 401) return
             const data = await res.json()
             const newCount: number = data.count || 0
 
             // If count went up since last poll, fetch the new unread notifications for popup
             if (prevUnreadRef.current !== null && newCount > prevUnreadRef.current) {
-                const notifRes = await fetch(API_URL + "/api/notifications/")
+                const notifRes = await fetch(API_URL + "/api/notifications/", { credentials: "include" })
                 const allNotifs: Notification[] = await notifRes.json()
                 const fresh = allNotifs.filter(n => !n.read)
                 if (fresh.length > 0) setPopupNotifs(fresh)
@@ -49,24 +51,29 @@ export function Sidebar() {
             setUnreadCount(newCount)
         } catch {}
 
-        fetch(API_URL + "/api/analytics/summary")
+        fetch(API_URL + "/api/analytics/summary", { credentials: "include" })
             .then(res => res.json())
             .then(data => setPendingCount(data.pending_picks || 0))
             .catch(() => {})
     }
 
     const fetchNotifications = () => {
-        fetch(API_URL + "/api/notifications/")
+        fetch(API_URL + "/api/notifications/", { credentials: "include" })
             .then(res => res.json())
             .then(data => setNotifications(data))
             .catch(() => {})
     }
 
     const dismissPopup = async () => {
-        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST", credentials: "include" })
         setPopupNotifs([])
         setUnreadCount(0)
         prevUnreadRef.current = 0
+    }
+
+    const handleLogout = async () => {
+        await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" })
+        router.push("/login")
     }
 
     useEffect(() => {
@@ -92,7 +99,7 @@ export function Sidebar() {
     }
 
     const handleMarkAllRead = async () => {
-        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST", credentials: "include" })
         setUnreadCount(0)
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     }
@@ -244,6 +251,15 @@ export function Sidebar() {
                     )
                 })}
             </nav>
+            <div className="border-t border-slate-700 px-2 py-4">
+                <button
+                    onClick={handleLogout}
+                    className="group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+                >
+                    <LogOut className="mr-3 h-6 w-6 flex-shrink-0 text-slate-500 group-hover:text-white" aria-hidden="true" />
+                    Sign out
+                </button>
+            </div>
         </div>
     )
 }

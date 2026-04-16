@@ -86,8 +86,8 @@ export default function CapperAnalyticsPage() {
 
     useEffect(() => {
         Promise.all([
-            fetch(`${API_URL}/api/analytics/capper/${capperId}`).then(r => r.json()),
-            fetch(`${API_URL}/api/analytics/capper/${capperId}/profit-history`).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${capperId}`, { credentials: "include" }).then(r => r.json()),
+            fetch(`${API_URL}/api/analytics/capper/${capperId}/profit-history`, { credentials: "include" }).then(r => r.json()),
         ]).then(([analyticsData, historyData]) => {
             setAnalytics(analyticsData)
             setNotes(analyticsData.notes ?? "")
@@ -103,6 +103,7 @@ export default function CapperAnalyticsPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notes }),
+                credentials: "include",
             })
             setEditingNotes(false)
         } finally {

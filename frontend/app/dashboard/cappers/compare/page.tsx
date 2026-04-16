@@ -84,20 +84,20 @@ export default function ComparePage() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        fetch(API_URL + "/api/analytics/cappers")
+        fetch(API_URL + "/api/analytics/cappers", { credentials: "include" })
             .then(r => r.json())
             .then(setCappers)
     }, [])
 
     useEffect(() => {
         if (!selectedA) { setHistoryA([]); return }
-        fetch(`${API_URL}/api/analytics/capper/${selectedA}/profit-history`)
+        fetch(`${API_URL}/api/analytics/capper/${selectedA}/profit-history`, { credentials: "include" })
             .then(r => r.json()).then(setHistoryA).catch(() => setHistoryA([]))
     }, [selectedA])
 
     useEffect(() => {
         if (!selectedB) { setHistoryB([]); return }
-        fetch(`${API_URL}/api/analytics/capper/${selectedB}/profit-history`)
+        fetch(`${API_URL}/api/analytics/capper/${selectedB}/profit-history`, { credentials: "include" })
             .then(r => r.json()).then(setHistoryB).catch(() => setHistoryB([]))
     }, [selectedB])
 

@@ -58,7 +58,7 @@ export default function PicksPage() {
 
     const fetchCappers = async () => {
         try {
-            const res = await fetch(API_URL + "/api/settings/cappers")
+            const res = await fetch(API_URL + "/api/settings/cappers", { credentials: "include" })
             const data = await res.json()
             setCappers(data)
         } catch (err) {
@@ -72,7 +72,7 @@ export default function PicksPage() {
             if (selectedCapper !== "all") {
                 url = `${API_URL}/api/picks/by-capper/${selectedCapper}`
             }
-            const res = await fetch(url)
+            const res = await fetch(url, { credentials: "include" })
             const data = await res.json()
             setPicks(data)
         } catch (err) {
@@ -87,7 +87,8 @@ export default function PicksPage() {
             const res = await fetch(`${API_URL}/api/picks/${pickId}/grade`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ result })
+                body: JSON.stringify({ result }),
+                credentials: "include",
             })
             if (res.ok) fetchPicks()
         } catch (err) {
@@ -99,7 +100,7 @@ export default function PicksPage() {
         setAutoGrading(true)
         setGradeResult(null)
         try {
-            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST" })
+            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST", credentials: "include" })
             if (res.ok) {
                 const data: AutoGradeResult = await res.json()
                 setGradeResult(data)
@@ -136,6 +137,7 @@ export default function PicksPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ pick_ids: Array.from(selectedIds), result }),
+                credentials: "include",
             })
             if (res.ok) {
                 setSelectedIds(new Set())
@@ -151,7 +153,7 @@ export default function PicksPage() {
     const handleDeletePick = async (pickId: number) => {
         if (!confirm("Are you sure you want to delete this pick?")) return
         try {
-            const response = await fetch(`${API_URL}/api/picks/${pickId}`, { method: "DELETE" })
+            const response = await fetch(`${API_URL}/api/picks/${pickId}`, { method: "DELETE", credentials: "include" })
             if (response.ok) fetchPicks()
         } catch (err) {
             console.error("Error deleting pick:", err)

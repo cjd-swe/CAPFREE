@@ -54,10 +54,10 @@ export default function DashboardPage() {
 
     useEffect(() => {
         Promise.all([
-            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
-            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
-            fetch(API_URL + "/api/picks/?limit=10").then(r => r.json()),
-            fetch(API_URL + "/api/notifications/").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/picks/?limit=10", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/notifications/", { credentials: "include" }).then(r => r.json()),
         ]).then(([summaryData, cappersData, picksData, notifsData]) => {
             setStats(summaryData)
             setCappers(cappersData.slice(0, 5))
@@ -69,10 +69,10 @@ export default function DashboardPage() {
 
     const refreshAll = () => {
         Promise.all([
-            fetch(API_URL + "/api/analytics/summary").then(r => r.json()),
-            fetch(API_URL + "/api/analytics/cappers").then(r => r.json()),
-            fetch(API_URL + "/api/picks/?limit=10").then(r => r.json()),
-            fetch(API_URL + "/api/notifications/").then(r => r.json()),
+            fetch(API_URL + "/api/analytics/summary", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/analytics/cappers", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/picks/?limit=10", { credentials: "include" }).then(r => r.json()),
+            fetch(API_URL + "/api/notifications/", { credentials: "include" }).then(r => r.json()),
         ]).then(([summaryData, cappersData, picksData, notifsData]) => {
             setStats(summaryData)
             setCappers(cappersData.slice(0, 5))
@@ -85,7 +85,7 @@ export default function DashboardPage() {
         setAutoGrading(true)
         setGradeResult(null)
         try {
-            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST" })
+            const res = await fetch(API_URL + "/api/picks/auto-grade", { method: "POST", credentials: "include" })
             if (res.ok) {
                 const data: AutoGradeResult = await res.json()
                 setGradeResult(data)
@@ -100,8 +100,8 @@ export default function DashboardPage() {
     }
 
     const handleMarkAllRead = async () => {
-        await fetch(API_URL + "/api/notifications/read-all", { method: "POST" })
-        fetch(API_URL + "/api/notifications/").then(r => r.json()).then(setNotifications)
+        await fetch(API_URL + "/api/notifications/read-all", { method: "POST", credentials: "include" })
+        fetch(API_URL + "/api/notifications/", { credentials: "include" }).then(r => r.json()).then(setNotifications)
     }
 
     const timeAgo = (dateStr: string) => {
