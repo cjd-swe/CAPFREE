@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut } from "lucide-react"
-import { API_URL, apiUrl } from "@/lib/api"
+import { API_URL, apiUrl, parseApiDate } from "@/lib/api"
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -105,7 +105,7 @@ export function Sidebar() {
     }
 
     const timeAgo = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime()
+        const diff = Date.now() - parseApiDate(dateStr).getTime()
         const mins = Math.floor(diff / 60000)
         if (mins < 1) return "just now"
         if (mins < 60) return `${mins}m ago`

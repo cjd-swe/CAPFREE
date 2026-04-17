@@ -100,6 +100,17 @@ MAIN_CARD_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Bare "Tennis" header (emoji/OCR garbage allowed after): sets sport, leaves
+# league open for a more specific tournament header to follow.
+TENNIS_SPORT_HEADER_RE = re.compile(r"^Tennis\b", re.IGNORECASE)
+
+# Tennis tournament header: "ATP Barcelona", "WTA Rouen", "Challenger Oeiras",
+# "ATP Monte Carlo". City name, no digits/odds/units — headers stand alone on
+# their own line.
+TENNIS_TOURNAMENT_HEADER_RE = re.compile(
+    r"^(ATP|WTA|Challenger)\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*$",
+)
+
 
 def _clean_team_name(raw: str) -> str:
     """Strip OCR artifacts and emoji residue from team/player names."""
@@ -340,6 +351,21 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
                     break
             continue
 
+        # Tennis tournament header (check before bare "Tennis" so a line like
+        # "ATP Barcelona" wins over any generic tennis match).
+        tennis_tourney = TENNIS_TOURNAMENT_HEADER_RE.match(line)
+        if tennis_tourney:
+            ctx_league = tennis_tourney.group(1).upper()
+            ctx_sport = "Tennis"
+            ctx_units = None
+            continue
+
+        if TENNIS_SPORT_HEADER_RE.match(line):
+            ctx_sport = "Tennis"
+            # Don't clobber a more specific league if we somehow already have one
+            ctx_units = None
+            continue
+
         # Skip noise lines
         if SKIP_PATTERNS.search(line):
             continue
@@ -377,6 +403,7 @@ _SPORT_MAP = {
     "NHL": "Hockey",
     "ATP": "Tennis",
     "WTA": "Tennis",
+    "CHALLENGER": "Tennis",
     "SOCCER": "Soccer",
     "MLS": "Soccer",
     "EPL": "Soccer",

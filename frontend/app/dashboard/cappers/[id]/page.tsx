@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Target } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { API_URL } from "@/lib/api"
+import { API_URL, parseApiDate } from "@/lib/api"
 
 interface Pick {
     id: number
@@ -57,7 +57,7 @@ interface ProfitHistoryEntry {
 function periodStats(history: ProfitHistoryEntry[], days: number) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    const slice = history.filter(p => new Date(p.date) >= cutoff)
+    const slice = history.filter(p => parseApiDate(p.date) >= cutoff)
     if (!slice.length) return null
     const wins = slice.filter(p => p.result === "WIN").length
     const losses = slice.filter(p => p.result === "LOSS").length
@@ -327,7 +327,7 @@ export default function CapperAnalyticsPage() {
                                 analytics.recent_picks.map((pick) => (
                                     <tr key={pick.id}>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
-                                            {new Date(pick.date).toLocaleDateString()}
+                                            {parseApiDate(pick.date).toLocaleDateString()}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{pick.sport}</td>
                                         <td className="px-6 py-4 text-sm text-slate-900">{pick.pick_text}</td>

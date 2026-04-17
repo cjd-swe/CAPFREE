@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Zap, TrendingUp, TrendingDown, CheckCircle, XCircle, MinusCircle, Clock, ArrowRight, Bell, Users } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { API_URL, parseApiDate } from "@/lib/api"
 
 interface SummaryStats {
     total_profit: number
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     }
 
     const timeAgo = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime()
+        const diff = Date.now() - parseApiDate(dateStr).getTime()
         const mins = Math.floor(diff / 60000)
         if (mins < 1) return "just now"
         if (mins < 60) return `${mins}m ago`
@@ -385,8 +385,8 @@ export default function DashboardPage() {
                                     <tr key={pick.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-3 text-xs text-slate-500">
                                             {pick.game_date
-                                                ? new Date(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                                                : new Date(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                                ? parseApiDate(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                                : parseApiDate(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                                             }
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-3">

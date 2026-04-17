@@ -7,7 +7,7 @@ import {
     Tooltip, ResponsiveContainer, ReferenceLine, Cell
 } from "recharts"
 import { TrendingUp, TrendingDown, Target, Trophy, Clock, ChevronDown } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { API_URL, parseApiDate } from "@/lib/api"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
         if (!profitHistory.length) return []
         const cutoff = new Date()
         cutoff.setDate(cutoff.getDate() - days)
-        return profitHistory.filter(p => new Date(p.date) >= cutoff)
+        return profitHistory.filter(p => parseApiDate(p.date) >= cutoff)
     }, [profitHistory, days])
 
     // Sport data for charts
@@ -552,8 +552,8 @@ export default function AnalyticsPage() {
                                     <tr key={i} className="hover:bg-slate-50">
                                         <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">
                                             {pick.game_date
-                                                ? new Date(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                                                : new Date(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                                ? parseApiDate(pick.game_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                                                : parseApiDate(pick.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                                             }
                                         </td>
                                         <td className="px-6 py-3 text-sm text-slate-800 max-w-xs">{pick.pick_text}</td>

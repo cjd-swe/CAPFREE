@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import NullPool
 
 from .config import settings
 
@@ -32,7 +33,28 @@ def resolve_database_url(raw: str = "") -> str:
 
 DATABASE_URL = resolve_database_url(settings.DATABASE_URL)
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+# Supabase's transaction pooler (port 6543, "pooler.supabase.com") runs
+# pgbouncer in transaction mode. Each transaction may land on a different
+# backend, so prepared statements can't be reused and their auto-generated
+# names collide. Fix: let pgbouncer do the pooling (NullPool on our side),
+# disable asyncpg's own statement cache, and give prepared statements unique
+# names per connection so two asyncpg connections that happen to hit the
+# same backend don't clash.
+_is_pgbouncer = ":6543" in DATABASE_URL or "pooler." in DATABASE_URL
+
+if _is_pgbouncer:
+    import uuid
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=True,
+        poolclass=NullPool,
+        connect_args={
+            "statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
+        },
+    )
+else:
+    engine = create_async_engine(DATABASE_URL, echo=True)
 
 AsyncSessionLocal = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False

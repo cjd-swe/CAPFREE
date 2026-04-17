@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap, Download } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { API_URL, parseApiDate } from "@/lib/api"
 
 interface Capper {
     id: number
@@ -198,8 +198,8 @@ export default function PicksPage() {
     const exportCSV = () => {
         const headers = ["Date Added", "Game Date", "Capper", "Sport", "Pick", "Units", "Odds", "Result", "Profit", "Grade Source"]
         const rows = filteredPicks.map(p => [
-            new Date(p.date).toLocaleDateString(),
-            p.game_date ? new Date(p.game_date).toLocaleDateString() : "",
+            parseApiDate(p.date).toLocaleDateString(),
+            p.game_date ? parseApiDate(p.game_date).toLocaleDateString() : "",
             p.capper.name,
             p.sport,
             `"${p.pick_text.replace(/"/g, '""')}"`,
@@ -227,7 +227,7 @@ export default function PicksPage() {
             const days = parseInt(dateRange)
             const cutoff = new Date()
             cutoff.setDate(cutoff.getDate() - days)
-            const pickDate = new Date(p.game_date ?? p.date)
+            const pickDate = parseApiDate(p.game_date ?? p.date)
             if (pickDate < cutoff) return false
         }
         return true
@@ -373,10 +373,10 @@ export default function PicksPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-900">
                                             {pick.game_date && (
-                                                <div className="font-medium">{new Date(pick.game_date).toLocaleDateString()}</div>
+                                                <div className="font-medium">{parseApiDate(pick.game_date).toLocaleDateString()}</div>
                                             )}
                                             <div className={pick.game_date ? "text-xs text-slate-500" : ""}>
-                                                {pick.game_date ? "Added " : ""}{new Date(pick.date).toLocaleDateString()}
+                                                {pick.game_date ? "Added " : ""}{parseApiDate(pick.date).toLocaleDateString()}
                                             </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">

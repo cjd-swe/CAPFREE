@@ -7,7 +7,7 @@ import {
     RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
     Tooltip
 } from "recharts"
-import { API_URL } from "@/lib/api"
+import { API_URL, parseApiDate } from "@/lib/api"
 
 interface CapperStat {
     id: number
@@ -36,7 +36,7 @@ interface ProfitEntry {
 function periodStats(history: ProfitEntry[], days: number) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    const slice = history.filter(p => new Date(p.date) >= cutoff)
+    const slice = history.filter(p => parseApiDate(p.date) >= cutoff)
     if (!slice.length) return null
     const wins = slice.filter(p => p.result === "WIN").length
     const losses = slice.filter(p => p.result === "LOSS").length
