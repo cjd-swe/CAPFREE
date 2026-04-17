@@ -168,10 +168,13 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
 
             if grade_result is not None:
                 # ESPN found and graded it
-                pick.result = grade_result
-                pick.profit = _calculate_profit(grade_result, pick.odds, pick.units_risked)
+                result_value, match_date = grade_result
+                pick.result = result_value
+                pick.profit = _calculate_profit(result_value, pick.odds, pick.units_risked)
                 pick.grade_source = "espn_api"
                 pick.graded_at = now
+                if match_date and pick.game_date is None:
+                    pick.game_date = match_date
                 graded_by_api += 1
             elif is_unsupported or is_prop:
                 # Prop or unsupported league — auto-win

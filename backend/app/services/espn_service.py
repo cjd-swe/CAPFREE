@@ -17,7 +17,20 @@ ESPN_ENDPOINTS = {
     "NCAAB": "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard",
 }
 
-UNSUPPORTED_LEAGUES = {"Soccer", "ATP", "UFC", "Boxing", "Tennis"}
+# Tennis scoreboards have a different response shape (events → groupings →
+# competitions) and the "teams" are individual athletes. Handled via a
+# separate fetch/grade path below.
+TENNIS_ENDPOINTS = {
+    "ATP": "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+    "WTA": "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard",
+}
+
+# ESPN doesn't expose a dedicated Challenger tour endpoint; try ATP first —
+# some Challenger events surface there, many don't. A None means "leave
+# ungraded" rather than auto_win.
+TENNIS_LEAGUE_FALLBACKS = {"CHALLENGER": "ATP"}
+
+UNSUPPORTED_LEAGUES = {"Soccer", "UFC", "Boxing"}
 
 
 @dataclass
@@ -27,6 +40,15 @@ class GameResult:
     home_score: float
     away_score: float
     is_final: bool
+
+
+@dataclass
+class TennisMatch:
+    player1: str
+    player2: str
+    player1_winner: bool  # meaningful only when is_final
+    is_final: bool
+    match_date: str  # ISO date, e.g. "2026-04-14"
 
 
 async def fetch_scoreboard(league: str, date: datetime) -> List[GameResult]:
@@ -75,6 +97,96 @@ async def fetch_scoreboard(league: str, date: datetime) -> List[GameResult]:
                 continue
 
     return games
+
+
+async def fetch_tennis_matches(league: str, date: datetime) -> List[TennisMatch]:
+    """
+    Fetch tennis matches for a league around a given date. The tennis scoreboard
+    returns whole active tournaments regardless of the single date queried, so
+    a match from days earlier in the tournament is reachable even if the pick
+    is uploaded later. Doubles matches (competitors without an `athlete` field)
+    are skipped.
+    """
+    endpoint_key = league.upper()
+    endpoint_key = TENNIS_LEAGUE_FALLBACKS.get(endpoint_key, endpoint_key)
+    if endpoint_key not in TENNIS_ENDPOINTS:
+        return []
+
+    url = TENNIS_ENDPOINTS[endpoint_key]
+    matches: List[TennisMatch] = []
+    seen_ids: set = set()
+
+    for delta in [-1, 0, 1]:
+        check_date = date + timedelta(days=delta)
+        date_str = check_date.strftime("%Y%m%d")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(url, params={"dates": date_str})
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception:
+            continue
+
+        for event in data.get("events", []):
+            for grouping in event.get("groupings", []) or []:
+                for comp in grouping.get("competitions", []) or []:
+                    comp_id = comp.get("id")
+                    if comp_id in seen_ids:
+                        continue
+                    competitors = comp.get("competitors", []) or []
+                    if len(competitors) != 2:
+                        continue
+                    # Skip doubles and any match with missing athlete info.
+                    athletes = [(c.get("athlete") or {}).get("displayName") for c in competitors]
+                    if not all(athletes):
+                        continue
+                    status = comp.get("status", {}).get("type", {})
+                    matches.append(TennisMatch(
+                        player1=athletes[0],
+                        player2=athletes[1],
+                        player1_winner=bool(competitors[0].get("winner")),
+                        is_final=bool(status.get("completed")),
+                        match_date=(comp.get("date") or "")[:10],
+                    ))
+                    if comp_id is not None:
+                        seen_ids.add(comp_id)
+
+    return matches
+
+
+def find_matching_tennis_match(
+    matches: List[TennisMatch], player_name: str
+) -> Optional[TennisMatch]:
+    """Match pick player to a tennis match by substring on last name or full token."""
+    if not player_name:
+        return None
+    needle = player_name.lower().strip()
+    tokens = [t for t in needle.split() if len(t) > 2]
+    for match in matches:
+        p1 = match.player1.lower()
+        p2 = match.player2.lower()
+        if needle and (needle in p1 or needle in p2):
+            return match
+        # Fall back to per-token substring (covers OCR'd last-name-only picks).
+        if tokens and any(t in p1 or t in p2 for t in tokens):
+            return match
+    return None
+
+
+def grade_tennis_moneyline(match: TennisMatch, player_name: str) -> str:
+    """Grade a tennis moneyline pick. Returns WIN/LOSS."""
+    needle = player_name.lower().strip()
+    tokens = [t for t in needle.split() if len(t) > 2]
+    p1 = match.player1.lower()
+
+    def player1_matches() -> bool:
+        if needle and needle in p1:
+            return True
+        return any(t in p1 for t in tokens)
+
+    picked_player1 = player1_matches()
+    picked_winner = match.player1_winner if picked_player1 else (not match.player1_winner)
+    return "WIN" if picked_winner else "LOSS"
 
 
 def find_matching_game(games: List[GameResult], full_team_name: str) -> Optional[GameResult]:
@@ -199,16 +311,50 @@ async def grade_pick_with_espn(
     league: str,
     pick_date: datetime,
     games_cache: Dict,
-) -> Optional[str]:
+) -> Optional[Tuple[str, Optional[datetime]]]:
     """
     Attempt to grade a single pick using ESPN data.
     games_cache is keyed by (league, date_str) → list[GameResult].
-    Returns "WIN"|"LOSS"|"PUSH" or None if can't grade.
+    Returns (result, match_date) where result is "WIN"|"LOSS"|"PUSH" and
+    match_date is the fixture's scheduled datetime when known (currently only
+    populated for tennis). Returns None if the pick can't be graded.
     """
-    if not league or league.upper() not in ESPN_ENDPOINTS:
+    if not league:
+        return None
+    league_upper = league.upper()
+
+    # Tennis has its own scoreboard shape (players, not teams) and needs a
+    # separate grading path. Only moneyline picks are supported; spreads and
+    # totals on tennis require set/game scoring we don't parse yet.
+    tennis_endpoint_key = TENNIS_LEAGUE_FALLBACKS.get(league_upper, league_upper)
+    if tennis_endpoint_key in TENNIS_ENDPOINTS:
+        pick_type = detect_pick_type(pick_text)
+        if pick_type != "moneyline":
+            return None
+        player_token = extract_team_from_pick_text(pick_text)
+        if not player_token:
+            return None
+        date_key = (f"tennis:{tennis_endpoint_key}", pick_date.strftime("%Y%m%d"))
+        if date_key not in games_cache:
+            games_cache[date_key] = await fetch_tennis_matches(league_upper, pick_date)
+        matches = games_cache[date_key]
+        if not matches:
+            return None
+        match = find_matching_tennis_match(matches, player_token)
+        if match is None or not match.is_final:
+            return None
+        result = grade_tennis_moneyline(match, player_token)
+        match_date: Optional[datetime] = None
+        if match.match_date:
+            try:
+                match_date = datetime.strptime(match.match_date, "%Y-%m-%d")
+            except ValueError:
+                match_date = None
+        return result, match_date
+
+    if league_upper not in ESPN_ENDPOINTS:
         return None
 
-    league_upper = league.upper()
     date_key = (league_upper, pick_date.strftime("%Y%m%d"))
 
     if date_key not in games_cache:
@@ -237,7 +383,7 @@ async def grade_pick_with_espn(
         line = _extract_ou_line(pick_text)
         if line is None:
             return None
-        return grade_over_under(game, pick_type, line)
+        return grade_over_under(game, pick_type, line), None
 
     if not team_token:
         return None
@@ -255,11 +401,11 @@ async def grade_pick_with_espn(
         return None  # leave PENDING, game not over
 
     if pick_type == "moneyline":
-        return grade_moneyline(game, full_name)
+        return grade_moneyline(game, full_name), None
     elif pick_type == "spread":
         spread_val = _extract_spread_value(pick_text)
         if spread_val is None:
             return None
-        return grade_spread(game, full_name, spread_val)
+        return grade_spread(game, full_name, spread_val), None
 
     return None
