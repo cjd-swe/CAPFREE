@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 from .. import models, schemas, database
-from ..services.grading import grade_pick, detect_pick_type, UNSUPPORTED_LEAGUES
+from ..services.grading import grade_pick, detect_pick_type, UNSUPPORTED_LEAGUES, suggest_odds
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +143,7 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
     errors: list[str] = []
 
     games_cache: dict = {}
+    odds_cache: dict = {}
     now = datetime.utcnow()
 
     for pick in pending_picks:
@@ -169,13 +170,22 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
             if grade_result is not None:
                 # ESPN found and graded it
                 result_value, match_date = grade_result
-                pick.result = result_value
-                pick.profit = _calculate_profit(result_value, pick.odds, pick.units_risked)
                 pick.grade_source = "espn_api"
                 pick.graded_at = now
                 if match_date and pick.game_date is None:
                     pick.game_date = match_date
                 graded_by_api += 1
+
+                # Fill missing odds from ESPN core API before calculating profit
+                if pick.odds is None:
+                    suggested = await suggest_odds(
+                        pick.pick_text, league, lookup_date, games_cache, odds_cache
+                    )
+                    if suggested is not None:
+                        pick.odds = suggested
+
+                pick.result = result_value
+                pick.profit = _calculate_profit(result_value, pick.odds, pick.units_risked)
             elif is_unsupported or is_prop:
                 # Prop or unsupported league — auto-win
                 pick.result = "WIN"
@@ -208,6 +218,37 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
         skipped_not_final=skipped_not_final,
         errors=errors,
     )
+
+
+@router.post("/backfill-odds")
+async def backfill_odds(db: AsyncSession = Depends(database.get_db)):
+    """Populate odds for already-graded picks that still have odds=NULL."""
+    result = await db.execute(
+        select(models.Pick)
+        .options(selectinload(models.Pick.capper))
+        .where(models.Pick.odds == None, models.Pick.result != "PENDING")  # noqa: E711
+    )
+    picks = result.scalars().all()
+
+    games_cache: dict = {}
+    odds_cache: dict = {}
+    filled = 0
+    errors: list[str] = []
+
+    for pick in picks:
+        try:
+            league = (pick.league or pick.sport or "").upper()
+            lookup_date = pick.game_date or pick.date
+            suggested = await suggest_odds(pick.pick_text, league, lookup_date, games_cache, odds_cache)
+            if suggested is not None:
+                pick.odds = suggested
+                pick.profit = _calculate_profit(pick.result, pick.odds, pick.units_risked)
+                filled += 1
+        except Exception as e:
+            errors.append(f"Pick {pick.id}: {str(e)}")
+
+    await db.commit()
+    return {"filled": filled, "skipped": len(picks) - filled, "errors": errors}
 
 
 @router.post("/bulk-grade", response_model=schemas.BulkGradeResult)
@@ -300,7 +341,7 @@ async def get_picks_by_capper(capper_id: int, skip: int = 0, limit: int = 100, d
 
 
 @router.patch("/{pick_id}/grade", response_model=schemas.Pick)
-async def grade_pick(pick_id: int, grade: schemas.PickGradeUpdate, db: AsyncSession = Depends(database.get_db)):
+async def manual_grade_pick(pick_id: int, grade: schemas.PickGradeUpdate, db: AsyncSession = Depends(database.get_db)):
     """Grade a pick and calculate profit based on result and odds"""
     result = await db.execute(
         select(models.Pick)

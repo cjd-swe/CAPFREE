@@ -3,9 +3,17 @@ ESPN unofficial API — fetch only, no grading logic.
 """
 import httpx
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import Dict, List, Optional
 
 from .types import GameResult, TennisMatch
+
+ESPN_CORE_PATHS: Dict[str, str] = {
+    "NBA":   "sports/basketball/leagues/nba",
+    "NFL":   "sports/football/leagues/nfl",
+    "NHL":   "sports/hockey/leagues/nhl",
+    "MLB":   "sports/baseball/leagues/mlb",
+    "NCAAB": "sports/basketball/leagues/mens-college-basketball",
+}
 
 ESPN_ENDPOINTS: Dict[str, str] = {
     "NBA":   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
@@ -65,6 +73,7 @@ async def fetch_scoreboard(league: str, date: datetime) -> List[GameResult]:
                     home_score=scores.get("home", 0),
                     away_score=scores.get("away", 0),
                     is_final=is_final,
+                    event_id=str(event.get("id", "")),
                 ))
             except (KeyError, IndexError, ValueError):
                 continue
@@ -121,6 +130,98 @@ async def fetch_tennis_matches(league: str, date: datetime) -> List[TennisMatch]
                         seen_ids.add(comp_id)
 
     return matches
+
+
+async def fetch_event_odds(
+    event_id: str,
+    core_path: str,
+    pick_type: str,
+    is_home_team: Optional[bool],
+) -> Optional[int]:
+    """Fetch closing American odds for one side of a game from ESPN core API."""
+    url = (
+        f"https://sports.core.api.espn.com/v2/{core_path}"
+        f"/events/{event_id}/competitions/{event_id}/odds"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+        items = data.get("items", [])
+        if not items:
+            return None
+        o = items[0]
+        if pick_type in ("over", "under"):
+            val = o.get("overOdds" if pick_type == "over" else "underOdds")
+        elif pick_type == "moneyline":
+            side = "homeTeamOdds" if is_home_team else "awayTeamOdds"
+            val = o.get(side, {}).get("moneyLine")
+        else:  # spread
+            side = "homeTeamOdds" if is_home_team else "awayTeamOdds"
+            val = o.get(side, {}).get("spreadOdds")
+        return int(val) if val is not None else None
+    except Exception:
+        return None
+
+
+async def suggest_odds(
+    pick_text: str,
+    league: str,
+    pick_date: datetime,
+    games_cache: dict,
+    odds_cache: dict,
+) -> Optional[int]:
+    """
+    Re-use the already-cached scoreboard to look up closing odds for a pick.
+    Must be called after grading has populated games_cache for this league/date.
+    """
+    from .pick_text import detect_pick_type, extract_team_from_pick_text
+    from .rules import find_matching_game
+
+    lu = league.upper()
+    if lu not in ESPN_CORE_PATHS:
+        return None
+
+    key = (lu, pick_date.strftime("%Y%m%d"))
+    games = games_cache.get(key)
+    if not games:
+        games = await fetch_scoreboard(lu, pick_date)
+        if not games:
+            return None
+        games_cache[key] = games
+
+    pick_type = detect_pick_type(pick_text)
+    team_token = extract_team_from_pick_text(pick_text)
+
+    full_name: Optional[str] = None
+    if team_token:
+        try:
+            from ...ocr.teams import get_full_team_name
+            full_name = get_full_team_name(team_token) or team_token
+        except Exception:
+            full_name = team_token
+
+    game = find_matching_game(games, full_name or "")
+    if game is None or not game.event_id:
+        return None
+
+    is_home_team: Optional[bool] = None
+    if pick_type not in ("over", "under") and full_name:
+        needle = full_name.lower()
+        words = needle.split()
+        is_home_team = (
+            needle in game.home_team.lower()
+            or (words and len(words[-1]) > 3 and words[-1] in game.home_team.lower())
+        )
+
+    odds_key = (game.event_id, pick_type, is_home_team)
+    if odds_key in odds_cache:
+        return odds_cache[odds_key]
+
+    odds = await fetch_event_odds(game.event_id, ESPN_CORE_PATHS[lu], pick_type, is_home_team)
+    odds_cache[odds_key] = odds
+    return odds
 
 
 class EspnSource:

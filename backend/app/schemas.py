@@ -45,6 +45,7 @@ class PickCreate(PickBase):
 class PickUpdate(BaseModel):
     result: Optional[PickResult] = None
     profit: Optional[float] = None
+    game_date: Optional[datetime] = None
 
 class PickGradeUpdate(BaseModel):
     result: PickResult

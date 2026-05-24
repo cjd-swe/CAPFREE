@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap, Download } from "lucide-react"
+import { CheckCircle, XCircle, MinusCircle, Clock, Trash2, Zap, Download, Pencil } from "lucide-react"
 import { API_URL, parseApiDate } from "@/lib/api"
 
 interface Capper {
@@ -47,6 +47,9 @@ export default function PicksPage() {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
     const [bulkGrading, setBulkGrading] = useState(false)
     const [bulkDeleting, setBulkDeleting] = useState(false)
+    const [editingDateId, setEditingDateId] = useState<number | null>(null)
+    const [backfilling, setBackfilling] = useState(false)
+    const [backfillResult, setBackfillResult] = useState<{ filled: number; skipped: number } | null>(null)
 
     useEffect(() => {
         fetchCappers()
@@ -106,12 +109,30 @@ export default function PicksPage() {
                 const data: AutoGradeResult = await res.json()
                 setGradeResult(data)
                 fetchPicks()
-                setTimeout(() => setGradeResult(null), 6000)
+                setTimeout(() => setGradeResult(null), data.errors.length > 0 ? 15000 : 6000)
             }
         } catch (err) {
             console.error("Auto-grade failed:", err)
         } finally {
             setAutoGrading(false)
+        }
+    }
+
+    const handleBackfillOdds = async () => {
+        setBackfilling(true)
+        setBackfillResult(null)
+        try {
+            const res = await fetch(API_URL + "/api/picks/backfill-odds", { method: "POST", credentials: "include" })
+            if (res.ok) {
+                const data = await res.json()
+                setBackfillResult(data)
+                fetchPicks()
+                setTimeout(() => setBackfillResult(null), 6000)
+            }
+        } catch (err) {
+            console.error("Backfill odds failed:", err)
+        } finally {
+            setBackfilling(false)
         }
     }
 
@@ -180,6 +201,29 @@ export default function PicksPage() {
         } catch (err) {
             console.error("Error deleting pick:", err)
         }
+    }
+
+    const updateGameDate = async (pickId: number, dateValue: string) => {
+        if (!dateValue) return
+        setEditingDateId(null)
+        // optimistic update
+        setPicks(prev => prev.map(p => p.id === pickId ? { ...p, game_date: `${dateValue}T12:00:00` } : p))
+        try {
+            const res = await fetch(`${API_URL}/api/picks/${pickId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ game_date: `${dateValue}T12:00:00` }),
+                credentials: "include",
+            })
+            if (res.ok) fetchPicks()
+        } catch (err) {
+            console.error("Failed to update game date:", err)
+        }
+    }
+
+    const toDateInputValue = (isoStr: string) => {
+        const d = parseApiDate(isoStr)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
     }
 
     const getResultBadge = (result: string) => {
@@ -273,6 +317,14 @@ export default function PicksPage() {
                         </button>
                     )}
                     <button
+                        onClick={handleBackfillOdds}
+                        disabled={backfilling}
+                        className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        title="Fill missing odds from ESPN for already-graded picks"
+                    >
+                        {backfilling ? "Fetching..." : "Backfill Odds"}
+                    </button>
+                    <button
                         onClick={exportCSV}
                         className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
@@ -292,8 +344,23 @@ export default function PicksPage() {
                         {" · "}Skipped: <span className="text-slate-500">{gradeResult.skipped_not_final}</span>
                     </p>
                     {gradeResult.errors.length > 0 && (
-                        <p className="mt-1 text-xs text-red-400">{gradeResult.errors.length} error(s)</p>
+                        <div className="mt-2 space-y-1">
+                            {gradeResult.errors.map((e, i) => (
+                                <p key={i} className="text-xs text-red-400">{e}</p>
+                            ))}
+                        </div>
                     )}
+                </div>
+            )}
+
+            {/* Backfill odds toast */}
+            {backfillResult && (
+                <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-slate-900 p-4 text-white shadow-xl">
+                    <p className="font-semibold">Odds Backfill Complete</p>
+                    <p className="mt-1 text-sm text-slate-300">
+                        Filled: <span className="text-green-400 font-medium">{backfillResult.filled}</span>
+                        {" · "}Skipped: <span className="text-slate-500">{backfillResult.skipped}</span>
+                    </p>
                 </div>
             )}
 
@@ -403,12 +470,36 @@ export default function PicksPage() {
                                             />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-900">
-                                            {pick.game_date && (
-                                                <div className="font-medium">{parseApiDate(pick.game_date).toLocaleDateString()}</div>
+                                            {editingDateId === pick.id ? (
+                                                <input
+                                                    type="date"
+                                                    autoFocus
+                                                    defaultValue={toDateInputValue(pick.game_date ?? pick.date)}
+                                                    className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                                                    onChange={e => updateGameDate(pick.id, e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === "Escape") setEditingDateId(null)
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="group flex items-center gap-1">
+                                                    <div>
+                                                        {pick.game_date && (
+                                                            <div className="font-medium">{parseApiDate(pick.game_date).toLocaleDateString()}</div>
+                                                        )}
+                                                        <div className={pick.game_date ? "text-xs text-slate-500" : ""}>
+                                                            {pick.game_date ? "Added " : ""}{parseApiDate(pick.date).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setEditingDateId(pick.id)}
+                                                        className="invisible rounded p-0.5 text-slate-400 hover:text-slate-600 group-hover:visible"
+                                                        title="Edit game date"
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
                                             )}
-                                            <div className={pick.game_date ? "text-xs text-slate-500" : ""}>
-                                                {pick.game_date ? "Added " : ""}{parseApiDate(pick.date).toLocaleDateString()}
-                                            </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
                                             {pick.capper.name}

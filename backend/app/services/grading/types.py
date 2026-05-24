@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Protocol
+from typing import Optional, Protocol
 
 
 @dataclass
@@ -10,6 +10,7 @@ class GameResult:
     home_score: float
     away_score: float
     is_final: bool
+    event_id: Optional[str] = field(default=None)
 
 
 @dataclass
