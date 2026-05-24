@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 from .. import models, schemas, database
-from ..services.espn_service import grade_pick_with_espn, detect_pick_type, UNSUPPORTED_LEAGUES
+from ..services.grading import grade_pick, detect_pick_type, UNSUPPORTED_LEAGUES
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ async def auto_grade_pending(db: AsyncSession = Depends(database.get_db)):
             # Try ESPN grading first
             grade_result = None
             if not is_unsupported and league:
-                grade_result = await grade_pick_with_espn(
+                grade_result = await grade_pick(
                     pick.pick_text,
                     league,
                     lookup_date,
