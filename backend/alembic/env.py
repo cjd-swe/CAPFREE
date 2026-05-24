@@ -79,10 +79,13 @@ async def run_async_migrations() -> None:
 
     """
 
+    db_url = config.get_main_option("sqlalchemy.url", "")
+    is_pgbouncer = ":6543" in db_url or "pooler." in db_url
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"statement_cache_size": 0} if is_pgbouncer else {},
     )
 
     async with connectable.connect() as connection:
