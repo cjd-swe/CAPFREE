@@ -90,12 +90,35 @@ Cappers write picks in many formats. Here are the main patterns:
 6. PARENTHETICAL FORMAT
    "(LAKERS -3.5)"          → pick_text="LAKERS -3.5"
 
+7. "TEAM (VALUE) over OPPONENT" FORMAT — common in Telegram posts
+   The word "over" here means "versus the opponent", NOT an over/under total.
+   Small value (abs < 50) = spread. Large value (abs ≥ 50) = moneyline odds.
+
+   "NY KNICKS (+2.5) over Cleveland Cavs (4-UNITS)"
+     → pick_text="NY KNICKS +2.5", units=4.0, sport="Basketball", league="NBA",
+       match_key="NY KNICKS v. Cleveland Cavs"
+
+   "CHICAGO WHITE SOX (+102) over SF Giants (+3-UNITS)"
+     → pick_text="CHICAGO WHITE SOX ML", odds=102, units=3.0, sport="Baseball", league="MLB",
+       match_key="CHICAGO WHITE SOX v. SF Giants"
+
+   "ATHLETICS (-110) over San Diego Padres (4-UNITS)"
+     → pick_text="ATHLETICS ML", odds=-110, units=4.0, sport="Baseball", league="MLB"
+
+8. SPLIT MATCHUP + PICK FORMAT — matchup on one line, bet on the next
+   "KNICKS/CAVS"            (matchup line — context for what follows)
+   "OVER 215.5"             → pick_text="KNICKS/CAVS Over 215.5", sport="Basketball", league="NBA"
+
+   "DODGERS/BREWERS"
+   "OVER 9 (-105)"          → pick_text="DODGERS/BREWERS Over 9", odds=-105, sport="Baseball", league="MLB"
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 UNITS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 • Default units_risked = 1.0 if not specified.
 • Units indicators: "1u", "2U", "1.5u", "2 units", "(2 unit)", "10U MAX"
+• "(4-UNITS)" or "(+3-UNITS)" with a dash also means 4 or 3 units — very common in Telegram posts.
 • If a sport header sets units ("NBA: 2 Units (7:30 PM EST)"), use that for
   all subsequent picks in that section until a new header appears.
 • "MAX" or "POTD" after units does not change the unit count.

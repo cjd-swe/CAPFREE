@@ -152,6 +152,10 @@ def _extract_units(text: str) -> Optional[float]:
     m = re.search(r"\(?\s*(\d+\.?\d*)\s*[Uu]nits?\s*\)?", text)
     if m:
         return float(m.group(1))
+    # "(4-UNITS)" or "(+3-UNITS)" — dash format common in Telegram capper posts
+    m = re.search(r"\([+-]?(\d+)-UNITS?\)", text, re.IGNORECASE)
+    if m:
+        return float(m.group(1))
     return None
 
 
@@ -325,6 +329,7 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
     ctx_sport: Optional[str] = None
     ctx_league: Optional[str] = None
     ctx_units: Optional[float] = None
+    ctx_matchup: Optional[str] = None  # last standalone "TEAM1/TEAM2" line
 
     # Parlay accumulator — when set, subsequent pick lines are legs not solo bets
     parlay_units: Optional[float] = None
@@ -410,8 +415,9 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
 
         # In parlay mode: accumulate legs, don't emit as standalone picks
         if parlay_units is not None:
-            leg = _try_parse_line(line, ctx_sport, ctx_league, None)
+            leg = _try_parse_line(line, ctx_sport, ctx_league, None, ctx_matchup)
             if leg:
+                ctx_matchup = None
                 parlay_legs.append(leg["pick_text"])
             else:
                 cleaned = _preclean_line(line)
@@ -420,9 +426,18 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
             continue
 
         # Normal pick
-        pick = _try_parse_line(line, ctx_sport, ctx_league, ctx_units)
+        pick = _try_parse_line(line, ctx_sport, ctx_league, ctx_units, ctx_matchup)
         if pick:
+            ctx_matchup = None
             picks.append(pick)
+        else:
+            # Units-only line: "(4-UNITS)" or "(+3-UNITS)" — update last pick's units
+            units_m = re.search(r"\([+-]?(\d+)-UNITS?\)", line, re.IGNORECASE)
+            if units_m and picks and abs(picks[-1].get("units_risked", 0) - 1.0) < 0.01:
+                picks[-1]["units_risked"] = float(units_m.group(1))
+            # Standalone matchup line: "DODGERS/BREWERS" — context for next O/U line
+            elif _MATCHUP_ONLY_RE.match(line):
+                ctx_matchup = line.strip()
 
     _flush_parlay()  # emit trailing parlay if text ended while in parlay mode
 
@@ -513,6 +528,19 @@ _SPREAD_NO_UNITS_RE = re.compile(
     r"^([A-Za-z][A-Za-z\s]*?)\s+([+-]\d+\.?\d*)(?:\s|$)",
 )
 
+# Format: "NY KNICKS (+2.5) over Cleveland Cavs (4-UNITS)" or "WHITE SOX (+102) over SF Giants"
+# Value in parens before "over" = spread (small) or ML odds (large). "over" = opponent, not O/U.
+_TEAM_OVER_OPPONENT_RE = re.compile(
+    r"^(.+?)\s*\(([+-]\d+\.?\d*)\)\s+over\s+(.+?)(?:\s+\([+-]?(\d+)-UNITS?\))?\s*$",
+    re.IGNORECASE,
+)
+
+# Standalone matchup line: "DODGERS/BREWERS" or "KNICKS/CAVS" — no spread, no O/U
+# Stored as context for the next over/under line.
+_MATCHUP_ONLY_RE = re.compile(
+    r"^([A-Za-z][A-Za-z\s]*[A-Za-z])\s*/\s*([A-Za-z][A-Za-z\s]*[A-Za-z])$"
+)
+
 # Game time pattern to strip from pick lines: "6:30pm", "9:30pm", "7pm", "10:00 PM EST"
 _GAME_TIME_RE = re.compile(r"\s+\d{1,2}(?::\d{2})?\s*[apAP][mM](?:\s*EST|PST|CST|MST)?", re.IGNORECASE)
 # Star rating chars
@@ -544,6 +572,7 @@ def _try_parse_line(
     ctx_sport: Optional[str],
     ctx_league: Optional[str],
     ctx_units: Optional[float],
+    ctx_matchup: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Try all patterns against a single line. Returns a pick dict or None."""
 
@@ -632,7 +661,34 @@ def _try_parse_line(
 
         return _make_pick(pick_text, units, line, sport, league, None, full or team, odds)
 
-    # 5) Over/Under: "Clemson/Wake Forest Under 143" or "Over 225.5 3u"
+    # 5a) "TEAM (VALUE) over OPPONENT" — spread or ML with opponent named via "over"
+    #     Small value (abs < 50) → spread. Large value (abs >= 50) → moneyline odds.
+    m = _TEAM_OVER_OPPONENT_RE.match(line)
+    if m:
+        team = _clean_team_name(m.group(1))
+        raw_val = m.group(2)          # e.g. "+2.5" or "+102" or "-110"
+        abs_val = abs(float(raw_val))
+        opponent = _clean_team_name(m.group(3).strip())
+        units = float(m.group(4)) if m.group(4) else (ctx_units or 1.0)
+        match_key = f"{team} v. {opponent}" if opponent else None
+        league, sport = detect_league_from_team(team)
+        if not league and opponent:
+            league, sport = detect_league_from_team(opponent)
+        if not sport:
+            sport = ctx_sport
+            league = league or ctx_league
+        full = get_full_team_name(team)
+        if abs_val >= 50:
+            # ML odds in parens: "WHITE SOX (+102) over SF Giants"
+            pick_text = f"{team} ML"
+            pick_odds = int(float(raw_val))
+        else:
+            # Spread: "NY KNICKS (+2.5) over Cleveland Cavs"
+            pick_text = f"{team} {raw_val}"
+            pick_odds = None
+        return _make_pick(pick_text, units, line, sport, league, match_key, full or team, pick_odds)
+
+    # 5b) Over/Under: "Clemson/Wake Forest Under 143" or "Over 225.5 3u"
     m = _OVER_UNDER_RE.match(line)
     if m:
         prefix = _clean_team_name(m.group(1)) if m.group(1) else ""
@@ -642,6 +698,9 @@ def _try_parse_line(
         # Reject if prefix looks like a sentence fragment (too many words or too long)
         if prefix and (len(prefix.split()) > 6 or len(prefix) > 50):
             return None
+        # No inline prefix — use matchup context from previous line if available
+        if not prefix and ctx_matchup:
+            prefix = ctx_matchup
         pick_text = f"{prefix} {direction} {value}".strip() if prefix else f"{direction} {value}"
         match_key = prefix if prefix else None
         # Try to detect sport from prefix teams
