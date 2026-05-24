@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     APP_PASSWORD: str = ""
     # Secret key for signing JWT tokens. Generate with: python -c "import secrets; print(secrets.token_hex(32))"
     JWT_SECRET: str = "change-me-in-production"
+    # Anthropic API key for Claude vision fallback in pick parsing.
+    ANTHROPIC_API_KEY: str = ""
+    # Parse engine: "hybrid" (OCR-first, escalate to vision when unreliable),
+    # "ocr" (Tesseract only), or "vision" (always Claude vision, for testing).
+    PARSE_ENGINE: str = "hybrid"
+    # Claude model used for vision parsing.
+    VISION_MODEL: str = "claude-haiku-4-5-20251001"
 
     @property
     def cors_origins_list(self) -> List[str]:

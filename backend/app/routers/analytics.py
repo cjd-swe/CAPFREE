@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime, timedelta
 from .. import models, database
 
@@ -10,6 +10,35 @@ router = APIRouter(
     prefix="/analytics",
     tags=["analytics"],
 )
+
+
+def _compute_streak(graded_picks: list) -> int:
+    """
+    Walk graded picks (sorted newest-first) and return the current streak.
+    Positive = win streak, negative = loss streak, 0 = no graded picks or push streak.
+    """
+    streak = 0
+    streak_type = None
+    for p in graded_picks:
+        r = p.result
+        if streak_type is None:
+            streak_type = r
+        if r == streak_type:
+            streak += 1
+        else:
+            break
+    if streak_type == "WIN":
+        return streak
+    if streak_type == "LOSS":
+        return -streak
+    return 0
+
+
+def _american_to_decimal(odds: int) -> float:
+    """Convert American odds integer to decimal odds."""
+    if odds >= 100:
+        return odds / 100 + 1
+    return 100 / abs(odds) + 1
 
 
 @router.get("/summary")
@@ -87,26 +116,9 @@ async def get_cappers_stats(db: AsyncSession = Depends(database.get_db)):
         total_win_rate = (total_wins / graded_total * 100) if graded_total > 0 else 0
         roi = (total_profit / total_units * 100) if total_units > 0 else 0
 
-        # Current streak — walk backwards through graded picks
         graded_picks = [p for p in picks if p.result in ("WIN", "LOSS", "PUSH")]
         graded_picks.sort(key=lambda p: p.game_date or p.date, reverse=True)
-        streak = 0
-        streak_type = None
-        for p in graded_picks:
-            r = p.result
-            if streak_type is None:
-                streak_type = r
-            if r == streak_type:
-                streak += 1
-            else:
-                break
-        # Encode: positive = win streak, negative = loss streak, 0 = no picks
-        if streak_type == "WIN":
-            current_streak = streak
-        elif streak_type == "LOSS":
-            current_streak = -streak
-        else:
-            current_streak = 0  # PUSH streak — treat as neutral
+        current_streak = _compute_streak(graded_picks)
 
         capper_stats.append({
             "id": capper.id,
@@ -151,11 +163,31 @@ async def get_capper_analytics(capper_id: int, db: AsyncSession = Depends(databa
 
     total_profit = sum(p.profit for p in picks)
     total_units = sum(p.units_risked for p in picks)
+    graded_picks = [p for p in picks if p.result in ("WIN", "LOSS", "PUSH")]
+    graded_total = len(graded_picks)
 
-    win_rate = (wins / total_picks * 100) if total_picks > 0 else 0
+    win_rate = (wins / graded_total * 100) if graded_total > 0 else 0
     roi = (total_profit / total_units * 100) if total_units > 0 else 0
+    avg_units = (total_units / total_picks) if total_picks > 0 else 0
 
-    recent_picks = picks[:10]
+    # Average decimal odds across picks that have odds recorded
+    picks_with_odds = [p for p in picks if p.odds is not None]
+    avg_odds_decimal = (
+        sum(_american_to_decimal(p.odds) for p in picks_with_odds) / len(picks_with_odds)
+        if picks_with_odds else None
+    )
+
+    # Last-10 record across graded picks sorted by game_date
+    sorted_graded = sorted(graded_picks, key=lambda p: p.game_date or p.date, reverse=True)
+    last_ten_picks = sorted_graded[:10]
+    last_ten_wins = sum(1 for p in last_ten_picks if p.result == "WIN")
+    last_ten_losses = sum(1 for p in last_ten_picks if p.result == "LOSS")
+    last_ten_pushes = sum(1 for p in last_ten_picks if p.result == "PUSH")
+    last_ten = f"{last_ten_wins}-{last_ten_losses}-{last_ten_pushes}" if last_ten_picks else None
+
+    # Current streak
+    sorted_graded.sort(key=lambda p: p.game_date or p.date, reverse=True)
+    current_streak = _compute_streak(sorted_graded)
 
     sport_performance = {}
     for pick in picks:
@@ -176,6 +208,22 @@ async def get_capper_analytics(capper_id: int, db: AsyncSession = Depends(databa
         elif pick.result == "PUSH":
             sport_performance[pick.sport]["pushes"] += 1
 
+    all_picks_serialized = [
+        {
+            "id": p.id,
+            "date": (p.game_date or p.date).strftime("%Y-%m-%d"),
+            "sport": p.sport,
+            "league": p.league,
+            "pick_text": p.pick_text,
+            "units_risked": p.units_risked,
+            "odds": p.odds,
+            "result": p.result,
+            "profit": round(p.profit, 2),
+            "grade_source": p.grade_source,
+        }
+        for p in picks
+    ]
+
     return {
         "id": capper.id,
         "name": capper.name,
@@ -189,7 +237,11 @@ async def get_capper_analytics(capper_id: int, db: AsyncSession = Depends(databa
         "roi": round(roi, 1),
         "total_profit": round(total_profit, 2),
         "total_units_risked": round(total_units, 2),
-        "recent_picks": recent_picks,
+        "avg_units": round(avg_units, 2),
+        "avg_odds": round(avg_odds_decimal, 3) if avg_odds_decimal is not None else None,
+        "last_ten": last_ten,
+        "current_streak": current_streak,
+        "all_picks": all_picks_serialized,
         "sport_performance": sport_performance
     }
 

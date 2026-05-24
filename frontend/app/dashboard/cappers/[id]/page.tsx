@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Target } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { API_URL, parseApiDate } from "@/lib/api"
 
@@ -11,11 +11,13 @@ interface Pick {
     id: number
     date: string
     sport: string
+    league: string | null
     pick_text: string
     units_risked: number
     odds: number | null
     result: string
     profit: number
+    grade_source: string | null
 }
 
 interface SportPerformance {
@@ -39,7 +41,11 @@ interface CapperAnalytics {
     roi: number
     total_profit: number
     total_units_risked: number
-    recent_picks: Pick[]
+    avg_units: number
+    avg_odds: number | null
+    last_ten: string | null
+    current_streak: number
+    all_picks: Pick[]
     sport_performance: Record<string, SportPerformance>
 }
 
@@ -72,6 +78,30 @@ function periodStats(history: ProfitHistoryEntry[], days: number) {
         win_rate: graded > 0 ? parseFloat((wins / graded * 100).toFixed(1)) : 0,
         roi: units > 0 ? parseFloat((profit / units * 100).toFixed(1)) : 0,
     }
+}
+
+function formatStreak(streak: number): string {
+    if (streak === 0) return "—"
+    if (streak > 0) return `${streak}W`
+    return `${Math.abs(streak)}L`
+}
+
+function streakColor(streak: number): string {
+    if (streak > 0) return "text-green-600"
+    if (streak < 0) return "text-red-500"
+    return "text-slate-600"
+}
+
+function decimalToAmerican(decimal: number): string {
+    if (decimal >= 2) return `+${Math.round((decimal - 1) * 100)}`
+    return String(Math.round(-100 / (decimal - 1)))
+}
+
+const RESULT_BADGE: Record<string, string> = {
+    WIN: "bg-green-100 text-green-800",
+    LOSS: "bg-red-100 text-red-800",
+    PUSH: "bg-slate-100 text-slate-800",
+    PENDING: "bg-yellow-100 text-yellow-800",
 }
 
 export default function CapperAnalyticsPage() {
@@ -114,6 +144,8 @@ export default function CapperAnalyticsPage() {
     if (loading) return <div className="text-slate-700">Loading...</div>
     if (!analytics) return <div className="text-slate-700">Capper not found</div>
 
+    const picks = analytics.all_picks ?? []
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -124,43 +156,45 @@ export default function CapperAnalyticsPage() {
                 <h1 className="text-3xl font-bold text-slate-900">{analytics.name}</h1>
             </div>
 
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg bg-white p-6 shadow">
-                    <div className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-green-600" />
-                        <h3 className="text-sm font-medium text-slate-700">Total Profit</h3>
-                    </div>
-                    <p className={`mt-2 text-3xl font-bold ${analytics.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {analytics.total_profit >= 0 ? '+' : ''}{analytics.total_profit}u
-                    </p>
-                </div>
-
-                <div className="rounded-lg bg-white p-6 shadow">
-                    <div className="flex items-center gap-2">
-                        <Trophy className="h-5 w-5 text-yellow-600" />
-                        <h3 className="text-sm font-medium text-slate-700">Win Rate</h3>
-                    </div>
-                    <p className="mt-2 text-3xl font-bold text-slate-900">{analytics.win_rate}%</p>
-                    <p className="mt-1 text-sm text-slate-700">
-                        {analytics.wins}W - {analytics.losses}L - {analytics.pushes}P
-                    </p>
-                </div>
-
-                <div className="rounded-lg bg-white p-6 shadow">
-                    <div className="flex items-center gap-2">
-                        <Target className="h-5 w-5 text-blue-600" />
-                        <h3 className="text-sm font-medium text-slate-700">ROI</h3>
-                    </div>
-                    <p className="mt-2 text-3xl font-bold text-blue-600">{analytics.roi}%</p>
-                </div>
-
-                <div className="rounded-lg bg-white p-6 shadow">
-                    <h3 className="text-sm font-medium text-slate-700">Total Picks</h3>
-                    <p className="mt-2 text-3xl font-bold text-slate-900">{analytics.total_picks}</p>
-                    {analytics.pending > 0 && (
-                        <p className="mt-1 text-sm text-yellow-600">{analytics.pending} pending</p>
-                    )}
+            {/* Stat strip */}
+            <div className="rounded-lg bg-white shadow overflow-hidden">
+                <div className="grid grid-cols-4 divide-x divide-slate-100 sm:grid-cols-8">
+                    <StatCell
+                        label="Units Won"
+                        value={`${analytics.total_profit >= 0 ? "+" : ""}${analytics.total_profit.toFixed(2)}`}
+                        valueClass={analytics.total_profit >= 0 ? "text-green-600" : "text-red-500"}
+                    />
+                    <StatCell
+                        label="ROI"
+                        value={`${analytics.roi >= 0 ? "+" : ""}${analytics.roi}%`}
+                        valueClass={analytics.roi >= 0 ? "text-green-600" : "text-red-500"}
+                    />
+                    <StatCell
+                        label="Record"
+                        value={`${analytics.wins}-${analytics.losses}-${analytics.pushes}`}
+                    />
+                    <StatCell
+                        label="Last 10"
+                        value={analytics.last_ten ?? "—"}
+                    />
+                    <StatCell
+                        label="Streak"
+                        value={formatStreak(analytics.current_streak)}
+                        valueClass={streakColor(analytics.current_streak)}
+                    />
+                    <StatCell
+                        label="Avg Units"
+                        value={analytics.avg_units.toFixed(2)}
+                    />
+                    <StatCell
+                        label="Avg Odds"
+                        value={analytics.avg_odds != null ? decimalToAmerican(analytics.avg_odds) : "—"}
+                    />
+                    <StatCell
+                        label="Picks"
+                        value={String(analytics.total_picks)}
+                        sub={analytics.pending > 0 ? `${analytics.pending} pending` : undefined}
+                    />
                 </div>
             </div>
 
@@ -301,48 +335,54 @@ export default function CapperAnalyticsPage() {
                 </div>
             </div>
 
-            {/* Recent Picks */}
+            {/* All Picks */}
             <div className="rounded-lg bg-white shadow">
-                <div className="border-b border-slate-200 px-6 py-4">
-                    <h2 className="text-lg font-medium text-slate-900">Recent Picks</h2>
+                <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                    <h2 className="text-lg font-medium text-slate-900">All Picks</h2>
+                    <span className="text-sm text-slate-500">{picks.length} total</span>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Sport</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Pick</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Units</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Result</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Profit</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Sport</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Pick</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Units</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Odds</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Result</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
-                            {analytics.recent_picks.length === 0 ? (
+                            {picks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-slate-700">No picks yet</td>
+                                    <td colSpan={7} className="px-4 py-4 text-center text-slate-500">No picks yet</td>
                                 </tr>
                             ) : (
-                                analytics.recent_picks.map((pick) => (
-                                    <tr key={pick.id}>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
+                                picks.map((pick) => (
+                                    <tr key={pick.id} className="hover:bg-slate-50">
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                                             {parseApiDate(pick.date).toLocaleDateString()}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{pick.sport}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-900">{pick.pick_text}</td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{pick.units_risked}u</td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm">
-                                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${pick.result === 'WIN' ? 'bg-green-100 text-green-800' :
-                                                pick.result === 'LOSS' ? 'bg-red-100 text-red-800' :
-                                                    pick.result === 'PUSH' ? 'bg-slate-100 text-slate-800' :
-                                                        'bg-yellow-100 text-yellow-800'
-                                                }`}>
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                                            {pick.league ?? pick.sport}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-slate-900 max-w-xs">{pick.pick_text}</td>
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">{pick.units_risked}u</td>
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                                            {pick.odds != null
+                                                ? <span className={pick.odds > 0 ? "text-green-700" : "text-slate-700"}>{pick.odds > 0 ? `+${pick.odds}` : pick.odds}</span>
+                                                : <span className="text-slate-400">—</span>
+                                            }
+                                        </td>
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm">
+                                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${RESULT_BADGE[pick.result] ?? "bg-slate-100 text-slate-700"}`}>
                                                 {pick.result}
                                             </span>
                                         </td>
-                                        <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                                            {pick.profit > 0 ? '+' : ''}{pick.profit.toFixed(2)}u
+                                        <td className={`whitespace-nowrap px-4 py-3 text-sm font-medium text-right ${pick.profit > 0 ? 'text-green-600' : pick.profit < 0 ? 'text-red-500' : 'text-slate-700'}`}>
+                                            {pick.result === "PENDING" ? "—" : `${pick.profit > 0 ? "+" : ""}${pick.profit.toFixed(2)}u`}
                                         </td>
                                     </tr>
                                 ))
@@ -351,6 +391,21 @@ export default function CapperAnalyticsPage() {
                     </table>
                 </div>
             </div>
+        </div>
+    )
+}
+
+function StatCell({ label, value, valueClass, sub }: {
+    label: string
+    value: string
+    valueClass?: string
+    sub?: string
+}) {
+    return (
+        <div className="px-4 py-5 text-center">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+            <p className={`mt-1 text-xl font-bold ${valueClass ?? "text-slate-900"}`}>{value}</p>
+            {sub && <p className="text-xs text-yellow-600">{sub}</p>}
         </div>
     )
 }

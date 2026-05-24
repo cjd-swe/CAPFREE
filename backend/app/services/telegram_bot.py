@@ -1,13 +1,16 @@
+import asyncio
 import logging
 import re
+from datetime import datetime, timezone, timedelta
 from typing import Optional
+
+from sqlalchemy.future import select
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from sqlalchemy.future import select
+
 from .. import models, database
-from ..ocr import pipeline, parser
 from ..config import settings
-import asyncio
+from ..ocr import parse_router, parser
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +51,29 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         photo_file = await update.message.photo[-1].get_file()
         photo_bytes = bytes(await photo_file.download_as_bytearray())
 
-        raw_text = pipeline.extract_text(photo_bytes)
-        picks = parser.parse_picks(raw_text)
+        parse_result = await parse_router.extract_picks(photo_bytes)
+        picks = parse_result["picks"]
+        raw_text = parse_result.get("raw_text", "")
 
         if not picks:
-            logger.info("Telegram photo: no picks parsed")
+            engine = parse_result.get("engine")
+            if engine == "vision_failed":
+                logger.warning(
+                    "Telegram photo message_id=%s: OCR was unreliable and vision "
+                    "returned no picks — screenshot needs manual review",
+                    update.message.message_id,
+                )
+            else:
+                logger.info(
+                    "Telegram photo message_id=%s: no picks parsed (engine=%s)",
+                    update.message.message_id,
+                    engine,
+                )
             return
 
         # Capper name priority:
         # 1. Caption text (user typed it alongside the photo)
-        # 2. OCR-extracted from the image itself
+        # 2. Vision/OCR-extracted from the image itself
         # 3. Sender's Telegram display name
         # 4. Fallback "Unknown"
         caption = update.message.caption
@@ -67,7 +83,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         capper_name = (
             _extract_capper_from_caption(caption)
-            or parser.extract_capper_name(raw_text)
+            or parse_result.get("capper_name")
             or sender_name
             or "Unknown"
         )
@@ -91,7 +107,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await session.refresh(capper)
 
             # Use message send date as game_date — picks are typically for games later that day
-            from datetime import timezone, timedelta
             msg_date = update.message.date
             if msg_date.tzinfo is not None:
                 msg_date = msg_date.astimezone(timezone.utc).replace(tzinfo=None)

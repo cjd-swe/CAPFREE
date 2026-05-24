@@ -40,7 +40,7 @@ export default function PicksPage() {
     const [cappers, setCappers] = useState<Capper[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedCapper, setSelectedCapper] = useState<number | "all">("all")
-    const [selectedResult, setSelectedResult] = useState<string>("all")
+    const [selectedResult, setSelectedResult] = useState<string>("PENDING")
     const [dateRange, setDateRange] = useState<string>("all")
     const [autoGrading, setAutoGrading] = useState(false)
     const [gradeResult, setGradeResult] = useState<AutoGradeResult | null>(null)

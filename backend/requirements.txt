@@ -13,3 +13,5 @@ pillow
 alembic
 pytest
 httpx
+curl_cffi
+anthropic
