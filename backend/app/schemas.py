@@ -99,6 +99,14 @@ class BulkGradeResult(BaseModel):
     skipped: int
 
 
+class BulkDeleteRequest(BaseModel):
+    pick_ids: List[int]
+
+
+class BulkDeleteResult(BaseModel):
+    deleted: int
+
+
 class NotificationBase(BaseModel):
     pick_id: Optional[int] = None
     message: str

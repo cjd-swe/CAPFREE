@@ -116,6 +116,33 @@ Do NOT emit them as picks.
   "Tennis"                      → context: sport=Tennis
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARLAYS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A parlay header like "Parlay: 1 Unit ( NHL/NBA )" introduces a multi-leg
+bet. ALL pick lines that follow it (until the next section header) are legs
+of that ONE parlay — not separate standalone picks.
+
+Emit the whole parlay as a SINGLE pick entry:
+  • pick_text: "Parlay: <Leg1> + <Leg2> + ..."  (join each leg's description)
+  • units_risked: units from the parlay header
+  • sport: "Parlay"
+  • league: null
+  • odds: null (parlay odds usually aren't shown per-leg)
+
+Example:
+  "Parlay: 1 Unit ( NHL/NBA )"
+  "Hurricanes Moneyline"
+  "Cavaliers +10 Alternate Line"
+
+→ ONE pick:
+  {"pick_text": "Parlay: Hurricanes ML + Cavaliers +10", "units_risked": 1.0,
+   "sport": "Parlay", "league": null, "odds": null, "match_key": null}
+
+Do NOT emit "Hurricanes ML" and "Cavaliers +10" as separate picks — they are
+legs of the parlay above, not independent bets.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SPORT VALUES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

@@ -46,6 +46,7 @@ export default function PicksPage() {
     const [gradeResult, setGradeResult] = useState<AutoGradeResult | null>(null)
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
     const [bulkGrading, setBulkGrading] = useState(false)
+    const [bulkDeleting, setBulkDeleting] = useState(false)
 
     useEffect(() => {
         fetchCappers()
@@ -122,12 +123,33 @@ export default function PicksPage() {
         })
     }
 
-    const selectAllPending = () => {
-        const pendingIds = filteredPicks.filter(p => p.result === "PENDING").map(p => p.id)
-        setSelectedIds(new Set(pendingIds))
+    const selectAllVisible = () => {
+        setSelectedIds(new Set(filteredPicks.map(p => p.id)))
     }
 
     const clearSelection = () => setSelectedIds(new Set())
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return
+        if (!confirm(`Delete ${selectedIds.size} pick${selectedIds.size > 1 ? "s" : ""}? This cannot be undone.`)) return
+        setBulkDeleting(true)
+        try {
+            const res = await fetch(API_URL + "/api/picks/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pick_ids: Array.from(selectedIds) }),
+                credentials: "include",
+            })
+            if (res.ok) {
+                setSelectedIds(new Set())
+                fetchPicks()
+            }
+        } catch (err) {
+            console.error("Bulk delete failed:", err)
+        } finally {
+            setBulkDeleting(false)
+        }
+    }
 
     const handleBulkGrade = async (result: "WIN" | "LOSS" | "PUSH") => {
         if (selectedIds.size === 0) return
@@ -280,10 +302,15 @@ export default function PicksPage() {
                 <div className="flex items-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-white">
                     <span className="text-sm font-medium">{selectedIds.size} selected</span>
                     <div className="flex gap-2 ml-2">
-                        <button onClick={() => handleBulkGrade("WIN")} disabled={bulkGrading} className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold hover:bg-green-700 disabled:opacity-50">Win</button>
-                        <button onClick={() => handleBulkGrade("LOSS")} disabled={bulkGrading} className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700 disabled:opacity-50">Loss</button>
-                        <button onClick={() => handleBulkGrade("PUSH")} disabled={bulkGrading} className="rounded bg-gray-600 px-3 py-1.5 text-xs font-semibold hover:bg-slate-500 disabled:opacity-50">Push</button>
+                        <button onClick={() => handleBulkGrade("WIN")} disabled={bulkGrading || bulkDeleting} className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold hover:bg-green-700 disabled:opacity-50">Win</button>
+                        <button onClick={() => handleBulkGrade("LOSS")} disabled={bulkGrading || bulkDeleting} className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700 disabled:opacity-50">Loss</button>
+                        <button onClick={() => handleBulkGrade("PUSH")} disabled={bulkGrading || bulkDeleting} className="rounded bg-gray-600 px-3 py-1.5 text-xs font-semibold hover:bg-slate-500 disabled:opacity-50">Push</button>
                     </div>
+                    <div className="mx-2 h-4 w-px bg-slate-600" />
+                    <button onClick={handleBulkDelete} disabled={bulkDeleting || bulkGrading} className="flex items-center gap-1.5 rounded bg-red-700 px-3 py-1.5 text-xs font-semibold hover:bg-red-800 disabled:opacity-50">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {bulkDeleting ? "Deleting..." : "Delete"}
+                    </button>
                     <button onClick={clearSelection} className="ml-auto text-xs text-slate-500 hover:text-white">Clear</button>
                 </div>
             )}
@@ -340,7 +367,13 @@ export default function PicksPage() {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th className="px-3 py-3 text-left">
-                                    <button onClick={selectAllPending} className="text-xs text-slate-500 hover:text-slate-800 font-medium" title="Select all pending">☐</button>
+                                    <input
+                                        type="checkbox"
+                                        checked={filteredPicks.length > 0 && filteredPicks.every(p => selectedIds.has(p.id))}
+                                        onChange={e => e.target.checked ? selectAllVisible() : clearSelection()}
+                                        className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                                        title="Select all visible"
+                                    />
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Dates</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">Capper</th>
@@ -362,14 +395,12 @@ export default function PicksPage() {
                                 filteredPicks.map((pick) => (
                                     <tr key={pick.id} className={`hover:bg-slate-50 ${selectedIds.has(pick.id) ? "bg-blue-50" : ""}`}>
                                         <td className="px-3 py-4">
-                                            {pick.result === "PENDING" && (
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedIds.has(pick.id)}
-                                                    onChange={() => toggleSelect(pick.id)}
-                                                    className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
-                                                />
-                                            )}
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.has(pick.id)}
+                                                onChange={() => toggleSelect(pick.id)}
+                                                className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                                            />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-900">
                                             {pick.game_date && (

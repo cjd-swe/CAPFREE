@@ -100,6 +100,13 @@ MAIN_CARD_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Parlay header: "Parlay: 1 Unit ( NHL/NBA )" — starts a multi-leg parlay block.
+# All pick lines that follow (until the next section header) are legs of one bet.
+PARLAY_HEADER_RE = re.compile(
+    r"^Parlay[:\s]+(\d+\.?\d*)\s*[Uu]nits?",
+    re.IGNORECASE,
+)
+
 # Bare "Tennis" header (emoji/OCR garbage allowed after): sets sport, leaves
 # league open for a more specific tournament header to follow.
 TENNIS_SPORT_HEADER_RE = re.compile(r"^Tennis\b", re.IGNORECASE)
@@ -311,22 +318,51 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
         if slip_picks:
             return slip_picks
 
-    picks = []
+    picks: List[Dict[str, Any]] = []
     lines = raw_text.split('\n')
 
     # Context tracking — sport headers set these for subsequent lines
-    ctx_sport = None
-    ctx_league = None
-    ctx_units = None
+    ctx_sport: Optional[str] = None
+    ctx_league: Optional[str] = None
+    ctx_units: Optional[float] = None
+
+    # Parlay accumulator — when set, subsequent pick lines are legs not solo bets
+    parlay_units: Optional[float] = None
+    parlay_legs: List[str] = []
+
+    def _flush_parlay() -> None:
+        nonlocal parlay_units, parlay_legs
+        if parlay_units is not None and parlay_legs:
+            legs_text = " + ".join(parlay_legs)
+            picks.append(_make_pick(
+                f"Parlay: {legs_text}",
+                parlay_units,
+                "",
+                "Parlay",
+                None,
+                None,
+                "Parlay",
+            ))
+        parlay_units = None
+        parlay_legs = []
 
     for line in lines:
         line = line.strip()
         if not line or len(line) < 3:
             continue
 
-        # Check for sport header lines (set context, not a pick themselves)
+        # Parlay header — flush any prior parlay, start accumulating new one
+        parlay_m = PARLAY_HEADER_RE.match(line)
+        if parlay_m:
+            _flush_parlay()
+            parlay_units = float(parlay_m.group(1))
+            parlay_legs = []
+            continue
+
+        # Sport headers — also terminate any active parlay, then set context
         header = SPORT_HEADER_RE.match(line)
         if header:
+            _flush_parlay()
             ctx_league = header.group(1).upper()
             ctx_sport = _league_to_sport(ctx_league)
             ctx_units = float(header.group(2))
@@ -334,6 +370,7 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
 
         header2 = SPORT_HEADER_NO_UNITS_RE.match(line)
         if header2:
+            _flush_parlay()
             ctx_league = header2.group(1).upper()
             ctx_sport = _league_to_sport(ctx_league)
             ctx_units = None
@@ -341,7 +378,7 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
 
         main_card = MAIN_CARD_RE.match(line)
         if main_card:
-            # "Main Card: NCAAB & NBA" — take the first sport as context
+            _flush_parlay()
             sports_text = main_card.group(1).strip()
             for token in re.split(r"[&,\s]+", sports_text):
                 token = token.strip().upper()
@@ -355,14 +392,15 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
         # "ATP Barcelona" wins over any generic tennis match).
         tennis_tourney = TENNIS_TOURNAMENT_HEADER_RE.match(line)
         if tennis_tourney:
+            _flush_parlay()
             ctx_league = tennis_tourney.group(1).upper()
             ctx_sport = "Tennis"
             ctx_units = None
             continue
 
         if TENNIS_SPORT_HEADER_RE.match(line):
+            _flush_parlay()
             ctx_sport = "Tennis"
-            # Don't clobber a more specific league if we somehow already have one
             ctx_units = None
             continue
 
@@ -370,10 +408,23 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
         if SKIP_PATTERNS.search(line):
             continue
 
-        # Try to parse as a pick
+        # In parlay mode: accumulate legs, don't emit as standalone picks
+        if parlay_units is not None:
+            leg = _try_parse_line(line, ctx_sport, ctx_league, None)
+            if leg:
+                parlay_legs.append(leg["pick_text"])
+            else:
+                cleaned = _preclean_line(line)
+                if cleaned and len(cleaned) > 2:
+                    parlay_legs.append(cleaned)
+            continue
+
+        # Normal pick
         pick = _try_parse_line(line, ctx_sport, ctx_league, ctx_units)
         if pick:
             picks.append(pick)
+
+    _flush_parlay()  # emit trailing parlay if text ended while in parlay mode
 
     # Deduplicate: prefer picks with a known team_name (full name) over raw OCR variants.
     # Key on (normalized_full_team_name, spread/odds) so "Boston Univ -128" and
@@ -381,9 +432,7 @@ def parse_picks(raw_text: str) -> List[Dict[str, Any]]:
     seen: set = set()
     deduped = []
     for p in picks:
-        # Use the resolved full team name if available, else fall back to pick_text
         team_key = (p.get("team_name") or p["pick_text"]).lower().strip()
-        # Extract the numeric part of the pick (spread or odds) for the key
         num_match = re.search(r"[+-]\d+\.?\d*", p["pick_text"])
         num_part = num_match.group(0) if num_match else ""
         key = f"{team_key}|{num_part}"

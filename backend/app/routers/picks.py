@@ -236,6 +236,19 @@ async def bulk_grade_picks(payload: schemas.BulkGradeRequest, db: AsyncSession =
     return schemas.BulkGradeResult(graded=graded, skipped=skipped)
 
 
+@router.post("/bulk-delete", response_model=schemas.BulkDeleteResult)
+async def bulk_delete_picks(payload: schemas.BulkDeleteRequest, db: AsyncSession = Depends(database.get_db)):
+    """Delete multiple picks at once."""
+    result = await db.execute(
+        select(models.Pick).where(models.Pick.id.in_(payload.pick_ids))
+    )
+    picks = result.scalars().all()
+    for pick in picks:
+        await db.delete(pick)
+    await db.commit()
+    return schemas.BulkDeleteResult(deleted=len(picks))
+
+
 @router.get("/{pick_id}", response_model=schemas.Pick)
 async def read_pick(pick_id: int, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(

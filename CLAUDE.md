@@ -34,6 +34,15 @@ npm run lint    # eslint (flat config, eslint.config.mjs)
 
 Backend and frontend run as two processes. The frontend expects the API at `http://localhost:8000` (hardcoded — see "Gotchas" below).
 
+**Committing changes** — after completing a set of related changes, commit only the files touched in that session. Never include `__pycache__/`, `.pyc`, or unrelated drifted files:
+
+```bash
+git add backend/app/routers/picks.py backend/app/schemas.py frontend/app/dashboard/picks/page.tsx
+git commit -m "feat: ..."
+```
+
+Do not use `git add -A` or `git add .` — stage files explicitly by name.
+
 ## Architecture
 
 ### Request → pick lifecycle
