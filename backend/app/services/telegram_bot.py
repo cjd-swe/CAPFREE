@@ -81,12 +81,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if update.message.from_user:
             sender_name = update.message.from_user.full_name or update.message.from_user.username
 
-        capper_name = (
+        capper_name = parse_router.clean_capper_name(
             _extract_capper_from_caption(caption)
             or parse_result.get("capper_name")
             or sender_name
-            or "Unknown"
-        )
+        ) or "Unknown"
         logger.info(
             f"Telegram: capper resolved as '{capper_name}' "
             f"(caption={bool(_extract_capper_from_caption(caption))}, "

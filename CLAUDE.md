@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-CAPFREE (a.k.a. **SharpWatch**) tracks sports handicappers ("cappers"). Screenshots of picks — either uploaded manually or auto-ingested from a Telegram group — are OCR'd, parsed into structured picks, stored as `PENDING`, and later graded against ESPN's unofficial scoreboard API to compute per-capper win rate, ROI, and profit over time.
+CAPFREE tracks sports handicappers ("cappers"). Screenshots of picks — either uploaded manually or auto-ingested from a Telegram group — are OCR'd, parsed into structured picks, stored as `PENDING`, and later graded against ESPN's unofficial scoreboard API to compute per-capper win rate, ROI, and profit over time.
 
 See `README.md` for the full feature list, API reference, and DB schema. This file is the orientation map; don't duplicate the README here.
 
@@ -32,7 +32,7 @@ npm run build
 npm run lint    # eslint (flat config, eslint.config.mjs)
 ```
 
-There is no combined "start everything" command — backend and frontend run as two processes. The frontend expects the API at `http://localhost:8000` (hardcoded — see "Gotchas" below).
+Backend and frontend run as two processes. The frontend expects the API at `http://localhost:8000` (hardcoded — see "Gotchas" below).
 
 ## Architecture
 

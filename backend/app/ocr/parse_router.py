@@ -13,13 +13,32 @@ PARSE_ENGINE config:
   "vision"  — always use vision (testing)
 """
 import logging
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 
 from ..config import settings
 from . import parser, pipeline
 from . import vision_parser
 
 logger = logging.getLogger(__name__)
+
+# Telegram display names often append group watermarks after the real name:
+# "Laformula ➖➖➖➖➖ DM➡️@cappersfree✅"
+# Strip from the first separator cluster or DM call-to-action onward.
+_CAPPER_NOISE_RE = re.compile(
+    r"\s*(?:➖{2,}|➕{2,}|[-—|]{3,}|DM\s*[➡→>:📲]|\bDM\b\s*@).*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def clean_capper_name(name: Optional[str]) -> Optional[str]:
+    """Strip group watermark noise from a capper name, return None if nothing remains."""
+    if not name:
+        return name
+    name = _CAPPER_NOISE_RE.sub("", name).strip()
+    # Drop any trailing non-alphanumeric chars (emoji watermarks like ✅, 🔥, etc.)
+    name = re.sub(r"[^\w\s.''\-]+$", "", name).strip()
+    return name or None
 
 
 def _is_unreliable(raw_text: str, picks: List[Dict[str, Any]]) -> bool:
@@ -32,14 +51,21 @@ def _is_unreliable(raw_text: str, picks: List[Dict[str, Any]]) -> bool:
     alnum = sum(1 for c in raw_text if c.isalnum() or c.isspace())
     if len(raw_text) > 0 and alnum / len(raw_text) < 0.55:
         return True
-    # All picks are missing every useful field (units defaulted, no odds, unknown sport)
+    # Non-ASCII chars surviving OCR (accented Spanish chars, etc.) suggest
+    # the English-centric regex parser will misread team names and pick fields.
+    non_ascii = sum(1 for c in raw_text if ord(c) > 127 and not c.isspace())
+    if non_ascii > 8:
+        return True
+    # Majority of picks are missing every useful field — escalate rather than
+    # requiring *all* to be low-confidence (handles mixed OCR results).
     def _low_confidence(p: Dict[str, Any]) -> bool:
         return (
             p.get("units_risked", 1.0) == 1.0
             and p.get("odds") is None
             and (p.get("sport") or "Unknown") == "Unknown"
         )
-    if all(_low_confidence(p) for p in picks):
+    low_conf = sum(1 for p in picks if _low_confidence(p))
+    if low_conf > len(picks) / 2:
         return True
     return False
 
@@ -82,7 +108,7 @@ async def extract_picks(image_bytes: bytes) -> Dict[str, Any]:
         vision_result = await vision_parser.parse_picks_from_image(image_bytes)
         if vision_result["picks"]:
             return {
-                "capper_name": vision_result.get("capper_name") or ocr_capper,
+                "capper_name": clean_capper_name(vision_result.get("capper_name") or ocr_capper),
                 "picks": vision_result["picks"],
                 "engine": "vision",
                 "raw_text": raw_text,
@@ -103,7 +129,7 @@ async def extract_picks(image_bytes: bytes) -> Dict[str, Any]:
         }
 
     return {
-        "capper_name": ocr_capper,
+        "capper_name": clean_capper_name(ocr_capper),
         "picks": ocr_picks,
         "engine": "ocr",
         "raw_text": raw_text,
