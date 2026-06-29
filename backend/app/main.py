@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .auth import router as auth_router, require_auth
 from .routers import picks, upload, telegram, analytics, settings, notifications
 from .config import settings as app_settings
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SharpWatch API")
 
@@ -19,8 +22,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema ready")
+    except Exception as exc:
+        logger.error("DB init failed — app will start but DB calls will fail: %s", exc)
 
     if app_settings.TELEGRAM_BOT_TOKEN and app_settings.TELEGRAM_BOT_TOKEN != "your_token_here":
         from .services.telegram_bot import start_polling
