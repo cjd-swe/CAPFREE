@@ -49,3 +49,19 @@ app.include_router(notifications.router, prefix="/api", dependencies=[Depends(re
 @app.get("/")
 async def root():
     return {"message": "Welcome to SharpWatch API"}
+
+
+@app.get("/health")
+async def health():
+    """Quick DB connectivity check — returns masked URL and error if any."""
+    import os
+    raw_url = os.environ.get("DATABASE_URL", "")
+    # Mask password for safe logging
+    import re
+    masked = re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", raw_url)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+        return {"db": "ok", "url": masked}
+    except Exception as e:
+        return {"db": "error", "url": masked, "error": str(e)}
