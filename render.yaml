@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: sharpwatch-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter  # $7/mo — never sleeps, keeps Telegram polling alive
+    healthCheckPath: /
+    envVars:
+      # Required — paste Supabase prod connection string (transaction pooler URI)
+      - key: DATABASE_URL
+        sync: false
+      # Required — get from @BotFather; enables Telegram photo ingestion
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # Required for hybrid/vision parse mode
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Set to your Vercel frontend URL once deployed, e.g.:
+      # https://sharpwatch.vercel.app,http://localhost:3000
+      - key: CORS_ORIGINS
+        value: http://localhost:3000
+      # Optional: password-protect all routes
+      - key: APP_PASSWORD
+        sync: false
+      # Auto-generated on first deploy — do not set manually
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PARSE_ENGINE
+        value: hybrid
+      - key: VISION_MODEL
+        value: claude-haiku-4-5-20251001
