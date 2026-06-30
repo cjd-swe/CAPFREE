@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: starter  # $7/mo — never sleeps, keeps Telegram polling alive
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       # Required — paste Supabase prod connection string (transaction pooler URI)
       - key: DATABASE_URL
@@ -16,10 +16,10 @@ services:
       # Required for hybrid/vision parse mode
       - key: ANTHROPIC_API_KEY
         sync: false
-      # Set to your Vercel frontend URL once deployed, e.g.:
-      # https://sharpwatch.vercel.app,http://localhost:3000
+      # Comma-separated allowed origins. Set via Render dashboard to include your
+      # Vercel frontend URL, e.g.: https://capfree.vercel.app,http://localhost:3000
       - key: CORS_ORIGINS
-        value: http://localhost:3000
+        sync: false
       # Optional: password-protect all routes
       - key: APP_PASSWORD
         sync: false
