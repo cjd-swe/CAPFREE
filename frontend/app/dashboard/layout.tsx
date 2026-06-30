@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/ui/sidebar"
 import { apiUrl } from "@/lib/api"
@@ -11,28 +11,13 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     const router = useRouter()
-    const [checked, setChecked] = useState(false)
-
     useEffect(() => {
+        // Background check only — redirect to login if auth is enabled and session is invalid.
+        // Don't block rendering; auth is disabled (APP_PASSWORD unset) in production.
         fetch(apiUrl("/api/auth/me"), { credentials: "include" })
-            .then((res) => {
-                if (!res.ok) router.replace("/login")
-                else setChecked(true)
-            })
-            .catch(() => {
-                // Server may be waking up (Render free tier spindown).
-                // Auth is disabled when APP_PASSWORD is unset, so don't redirect — just let through.
-                setChecked(true)
-            })
+            .then((res) => { if (!res.ok) router.replace("/login") })
+            .catch(() => {})
     }, [router])
-
-    if (!checked) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-slate-100">
-                <p className="text-slate-400">Loading...</p>
-            </div>
-        )
-    }
 
     return (
         <div className="flex h-screen bg-slate-100">
