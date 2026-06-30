@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .auth import router as auth_router, require_auth
-from .routers import picks, upload, telegram, analytics, settings, notifications
+from .routers import picks, upload, telegram, analytics, settings, notifications, convergence
 from .config import settings as app_settings
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ app.include_router(telegram.router, prefix="/api", dependencies=[Depends(require
 app.include_router(analytics.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(settings.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(notifications.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(convergence.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 
 @app.get("/")

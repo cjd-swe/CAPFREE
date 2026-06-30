@@ -41,6 +41,40 @@ def _extract_capper_from_caption(caption: Optional[str]) -> Optional[str]:
     return None
 
 
+# Patterns that signal "picks by <name>" in the body of a forwarded post
+_FORWARD_CAPPER_RE = re.compile(
+    r"(?:picks?\s+(?:from|by)|plays?\s+(?:from|by)|by|from|capper[:\s]+|via\s+)@?([\w][\w\s.'\-]{1,50}?)(?:\s*[\n:]|$)",
+    re.IGNORECASE,
+)
+_TRAILING_CAPPER_RE = re.compile(
+    r"^@?([\w][\w\s.'\-]{1,50}?)(?:\s+picks?|\s+plays?|\s+card)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _extract_capper_from_forward_text(text: Optional[str]) -> Optional[str]:
+    """Extract a capper name from the body of a forwarded Telegram post.
+
+    Channel posts often open with 'Picks by CapperName' or a header line like
+    'CapperName plays' — check the first line first, then the full text.
+    """
+    if not text:
+        return None
+    first_line = text.strip().splitlines()[0].strip()
+    for src in (first_line, text.strip()):
+        m = _FORWARD_CAPPER_RE.search(src)
+        if m:
+            name = m.group(1).strip().rstrip(":")
+            if 2 <= len(name) <= 60:
+                return name
+    m = _TRAILING_CAPPER_RE.match(first_line)
+    if m:
+        name = m.group(1).strip()
+        if 2 <= len(name) <= 60:
+            return name
+    return None
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("SharpWatch bot active. Send pick screenshots to this group.")
 
@@ -72,24 +106,43 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
 
         # Capper name priority:
-        # 1. Caption text (user typed it alongside the photo)
-        # 2. Vision/OCR-extracted from the image itself
-        # 3. Sender's Telegram display name
-        # 4. Fallback "Unknown"
+        # 1. Caption text (user typed it alongside the photo, no pick markers)
+        # 2. Forwarded post text (e.g. "Picks by CapperName" in the channel post body)
+        # 3. Forwarded-message metadata (original sender's Telegram display name)
+        # 4. Vision/OCR-extracted from the image itself
+        # 5. Sender's Telegram display name (whoever forwarded to us)
+        # 6. Fallback "Unknown"
         caption = update.message.caption
         sender_name = None
         if update.message.from_user:
             sender_name = update.message.from_user.full_name or update.message.from_user.username
 
+        forward_name = None
+        if update.message.forward_from:
+            forward_name = (
+                update.message.forward_from.full_name
+                or update.message.forward_from.username
+            )
+        elif update.message.forward_sender_name:
+            # Privacy-protected accounts expose only a display name string
+            forward_name = update.message.forward_sender_name
+
+        caption_name = _extract_capper_from_caption(caption)
+        forward_text_name = _extract_capper_from_forward_text(caption)
+
         capper_name = parse_router.clean_capper_name(
-            _extract_capper_from_caption(caption)
+            caption_name
+            or forward_text_name
+            or forward_name
             or parse_result.get("capper_name")
             or sender_name
         ) or "Unknown"
         logger.info(
             f"Telegram: capper resolved as '{capper_name}' "
-            f"(caption={bool(_extract_capper_from_caption(caption))}, "
-            f"ocr={bool(parser.extract_capper_name(raw_text))}, "
+            f"(caption={bool(caption_name)}, "
+            f"forward_text={bool(forward_text_name)}, "
+            f"forward_meta={bool(forward_name)}, "
+            f"ocr={bool(parse_result.get('capper_name'))}, "
             f"sender={bool(sender_name)})"
         )
 

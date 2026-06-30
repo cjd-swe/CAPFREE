@@ -10,7 +10,7 @@ See `README.md` for the full feature list, API reference, and DB schema. This fi
 
 ## Development commands
 
-**Backend** (Python 3.8, FastAPI, async SQLAlchemy, SQLite). The virtualenv lives at the repo root in `venv/`, not inside `backend/`:
+**Backend** (Python 3.12, FastAPI, async SQLAlchemy, Postgres). The virtualenv lives at the repo root in `venv/`, not inside `backend/`:
 
 ```bash
 source venv/bin/activate

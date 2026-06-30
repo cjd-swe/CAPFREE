@@ -2,6 +2,8 @@
 
 SharpWatch is a private sports-picks tracker for monitoring cappers over time. It ingests picks from screenshots or manual entry, stores them in Postgres, auto-grades supported bets with live-score providers, and exposes a Next.js dashboard for review, analytics, and capper comparisons.
 
+**Live:** [https://frontend-two-silk-92.vercel.app](https://frontend-two-silk-92.vercel.app) — API on Render, frontend on Vercel.
+
 ## Current Status
 
 The repo currently includes:

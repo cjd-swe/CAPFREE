@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut, Menu } from "lucide-react"
+import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut, Menu, TrendingUp } from "lucide-react"
 import { API_URL, apiUrl, parseApiDate } from "@/lib/api"
 
 const navigation = [
@@ -11,6 +11,7 @@ const navigation = [
     { name: "Picks", href: "/dashboard/picks", icon: ListChecks },
     { name: "Upload Picks", href: "/dashboard/upload", icon: Upload },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Convergence", href: "/dashboard/convergence", icon: TrendingUp },
     { name: "Cappers", href: "/dashboard/cappers", icon: Users },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]

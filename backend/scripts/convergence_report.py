@@ -3,7 +3,7 @@
 convergence_report.py — Telegram export → per-capper results + convergence/conflict analysis
 
 Usage (from repo root):
-    PYTHONPATH=venv/lib/python3.8/site-packages python3.8 backend/scripts/convergence_report.py \
+    python3 backend/scripts/convergence_report.py \
         "/path/to/ChatExport_2026-06-22"
 
 Outputs (in the export folder):
@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # ─── Path bootstrap (before any app imports) ──────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 BACKEND = REPO_ROOT / "backend"
-VENV_SITE = REPO_ROOT / "venv" / "lib" / "python3.8" / "site-packages"
+VENV_SITE = REPO_ROOT / "venv" / "lib" / "python3.12" / "site-packages"
 
 for p in [str(VENV_SITE), str(BACKEND)]:
     if p not in sys.path:

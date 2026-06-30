@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     # Parse engine: "hybrid" (OCR-first, escalate to vision when unreliable),
     # "ocr" (Tesseract only), or "vision" (always Claude vision, for testing).
-    PARSE_ENGINE: str = "hybrid"
+    PARSE_ENGINE: str = "vision"
     # Claude model used for vision parsing.
     VISION_MODEL: str = "claude-haiku-4-5-20251001"
 
