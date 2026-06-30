@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut } from "lucide-react"
+import { LayoutDashboard, Upload, BarChart3, Users, Settings, ListChecks, Bell, X, LogOut, Menu } from "lucide-react"
 import { API_URL, apiUrl, parseApiDate } from "@/lib/api"
 
 const navigation = [
@@ -30,6 +30,7 @@ export function Sidebar() {
     const [bellOpen, setBellOpen] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [popupNotifs, setPopupNotifs] = useState<Notification[]>([])
+    const [mobileOpen, setMobileOpen] = useState(false)
     const bellRef = useRef<HTMLDivElement>(null)
     const prevUnreadRef = useRef<number | null>(null)
 
@@ -40,7 +41,6 @@ export function Sidebar() {
             const data = await res.json()
             const newCount: number = data.count || 0
 
-            // If count went up since last poll, fetch the new unread notifications for popup
             if (prevUnreadRef.current !== null && newCount > prevUnreadRef.current) {
                 const notifRes = await fetch(API_URL + "/api/notifications/", { credentials: "include" })
                 const allNotifs: Notification[] = await notifRes.json()
@@ -82,7 +82,7 @@ export function Sidebar() {
         return () => clearInterval(interval)
     }, [])
 
-    // Close dropdown when clicking outside
+    // Close bell dropdown when clicking outside
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
@@ -92,6 +92,11 @@ export function Sidebar() {
         document.addEventListener("mousedown", handler)
         return () => document.removeEventListener("mousedown", handler)
     }, [])
+
+    // Close mobile drawer on route change
+    useEffect(() => {
+        setMobileOpen(false)
+    }, [pathname])
 
     const handleBellClick = () => {
         if (!bellOpen) fetchNotifications()
@@ -119,80 +124,89 @@ export function Sidebar() {
         return pathname.startsWith(href)
     }
 
-    return (
+    const sidebarContent = (
         <div className="flex h-full w-64 flex-col bg-slate-900 text-white">
             <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
                 <h1 className="text-xl font-bold text-green-500">SharpWatch</h1>
 
-                {/* Bell with dropdown */}
-                <div className="relative" ref={bellRef}>
-                    <button
-                        onClick={handleBellClick}
-                        className="relative rounded-md p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
-                        aria-label="Notifications"
-                    >
-                        <Bell className="h-5 w-5" />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                                {unreadCount > 9 ? "9+" : unreadCount}
-                            </span>
-                        )}
-                    </button>
-
-                    {bellOpen && (
-                        // Fixed to viewport: appears below the header at the right edge of the sidebar
-                        // so it's never clipped by the sidebar's layout
-                        <div className="fixed top-16 left-64 z-50 w-96 rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-                                <span className="text-sm font-semibold text-slate-900">
-                                    Notifications
-                                    {unreadCount > 0 && (
-                                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
-                                            {unreadCount} new
-                                        </span>
-                                    )}
+                <div className="flex items-center gap-1">
+                    {/* Bell with dropdown */}
+                    <div className="relative" ref={bellRef}>
+                        <button
+                            onClick={handleBellClick}
+                            className="relative rounded-md p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
+                            aria-label="Notifications"
+                        >
+                            <Bell className="h-5 w-5" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                    {unreadCount > 9 ? "9+" : unreadCount}
                                 </span>
-                                <div className="flex items-center gap-2">
-                                    {unreadCount > 0 && (
-                                        <button
-                                            onClick={handleMarkAllRead}
-                                            className="text-xs text-slate-500 hover:text-slate-700"
-                                        >
-                                            Mark all read
-                                        </button>
-                                    )}
-                                    <button onClick={() => setBellOpen(false)} className="text-slate-500 hover:text-slate-600">
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
+                            )}
+                        </button>
 
-                            <ul className="max-h-[calc(100vh-5rem)] overflow-y-auto divide-y divide-slate-100">
-                                {notifications.length === 0 ? (
-                                    <li className="px-4 py-6 text-center text-sm text-slate-500">
-                                        No notifications yet
-                                    </li>
-                                ) : (
-                                    notifications.map(n => (
-                                        <li
-                                            key={n.id}
-                                            className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}
-                                        >
-                                            <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-slate-200'}`} />
-                                            <div className="flex-1">
-                                                <p className="text-sm text-slate-800 leading-snug break-words">{n.message}</p>
-                                                <p className="mt-0.5 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
-                                            </div>
+                        {bellOpen && (
+                            <div className="fixed top-16 left-64 z-50 w-80 sm:w-96 rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                    <span className="text-sm font-semibold text-slate-900">
+                                        Notifications
+                                        {unreadCount > 0 && (
+                                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+                                                {unreadCount} new
+                                            </span>
+                                        )}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={handleMarkAllRead}
+                                                className="text-xs text-slate-500 hover:text-slate-700"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
+                                        <button onClick={() => setBellOpen(false)} className="text-slate-500 hover:text-slate-600">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <ul className="max-h-[calc(100vh-5rem)] overflow-y-auto divide-y divide-slate-100">
+                                    {notifications.length === 0 ? (
+                                        <li className="px-4 py-6 text-center text-sm text-slate-500">
+                                            No notifications yet
                                         </li>
-                                    ))
-                                )}
-                            </ul>
-                        </div>
-                    )}
+                                    ) : (
+                                        notifications.map(n => (
+                                            <li
+                                                key={n.id}
+                                                className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}
+                                            >
+                                                <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-slate-200'}`} />
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-slate-800 leading-snug break-words">{n.message}</p>
+                                                    <p className="mt-0.5 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
+                                                </div>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Close button — mobile drawer only */}
+                    <button
+                        onClick={() => setMobileOpen(false)}
+                        className="md:hidden rounded-md p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
+                        aria-label="Close menu"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
                 </div>
             </div>
 
-            {/* Telegram notification popup — must be manually dismissed */}
+            {/* Telegram notification popup */}
             {popupNotifs.length > 0 && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
                     <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden mx-4">
@@ -261,5 +275,115 @@ export function Sidebar() {
                 </button>
             </div>
         </div>
+    )
+
+    return (
+        <>
+            {/* Desktop sidebar — hidden on mobile */}
+            <div className="hidden md:flex h-full w-64 flex-shrink-0">
+                {sidebarContent}
+            </div>
+
+            {/* Mobile top bar */}
+            <div className="md:hidden fixed top-0 inset-x-0 z-40 flex h-14 items-center justify-between bg-slate-900 px-4 shadow">
+                <button
+                    onClick={() => setMobileOpen(true)}
+                    className="rounded-md p-2 text-slate-400 hover:text-white"
+                    aria-label="Open menu"
+                >
+                    <Menu className="h-5 w-5" />
+                </button>
+                <span className="text-base font-bold text-green-500">SharpWatch</span>
+                <div className="relative" ref={bellRef}>
+                    <button
+                        onClick={handleBellClick}
+                        className="relative rounded-md p-2 text-slate-400 hover:text-white"
+                        aria-label="Notifications"
+                    >
+                        <Bell className="h-5 w-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                {unreadCount > 9 ? "9+" : unreadCount}
+                            </span>
+                        )}
+                    </button>
+                    {bellOpen && (
+                        <div className="fixed top-14 right-0 z-50 w-screen max-w-xs rounded-b-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                <span className="text-sm font-semibold text-slate-900">
+                                    Notifications
+                                    {unreadCount > 0 && (
+                                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+                                            {unreadCount} new
+                                        </span>
+                                    )}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    {unreadCount > 0 && (
+                                        <button onClick={handleMarkAllRead} className="text-xs text-slate-500 hover:text-slate-700">
+                                            Mark all read
+                                        </button>
+                                    )}
+                                    <button onClick={() => setBellOpen(false)} className="text-slate-500">
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                                {notifications.length === 0 ? (
+                                    <li className="px-4 py-6 text-center text-sm text-slate-500">No notifications yet</li>
+                                ) : (
+                                    notifications.map(n => (
+                                        <li key={n.id} className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-blue-50' : ''}`}>
+                                            <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${!n.read ? 'bg-blue-500' : 'bg-slate-200'}`} />
+                                            <div className="flex-1">
+                                                <p className="text-sm text-slate-800 leading-snug break-words">{n.message}</p>
+                                                <p className="mt-0.5 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
+                                            </div>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Mobile drawer overlay */}
+            {mobileOpen && (
+                <div
+                    className="md:hidden fixed inset-0 z-50 bg-black/50"
+                    onClick={() => setMobileOpen(false)}
+                >
+                    <div onClick={e => e.stopPropagation()}>
+                        {sidebarContent}
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile bottom nav */}
+            <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 border-t border-slate-700 flex">
+                {navigation.slice(0, 5).map((item) => {
+                    const active = isActive(item.href)
+                    return (
+                        <Link
+                            key={item.name}
+                            href={item.href}
+                            className={`relative flex flex-1 flex-col items-center justify-center py-2 text-[10px] font-medium transition-colors ${
+                                active ? "text-green-400" : "text-slate-500"
+                            }`}
+                        >
+                            <item.icon className={`h-5 w-5 mb-0.5 ${active ? "text-green-400" : "text-slate-500"}`} />
+                            {item.name === "Upload Picks" ? "Upload" : item.name}
+                            {item.name === "Picks" && pendingCount > 0 && (
+                                <span className="absolute top-1 right-[calc(50%-14px)] flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500 text-[9px] font-bold text-white">
+                                    {pendingCount > 9 ? "9+" : pendingCount}
+                                </span>
+                            )}
+                        </Link>
+                    )
+                })}
+            </nav>
+        </>
     )
 }
