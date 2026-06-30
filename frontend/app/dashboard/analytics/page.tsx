@@ -140,6 +140,11 @@ export default function AnalyticsPage() {
     const [days, setDays] = useState(30)
     const [loading, setLoading] = useState(true)
     const [dropdownOpen, setDropdownOpen] = useState(false)
+    const [visionCost, setVisionCost] = useState<{
+        total_calls: number
+        total_cost_usd: number
+        cache_hit_rate_pct: number
+    } | null>(null)
 
     // Load cappers + overall data once
     useEffect(() => {
@@ -147,10 +152,12 @@ export default function AnalyticsPage() {
             fetch(API_URL + "/api/analytics/cappers", { credentials: "include" }).then(r => r.json()),
             fetch(API_URL + "/api/analytics/summary", { credentials: "include" }).then(r => r.json()),
             fetch(API_URL + "/api/analytics/sport-performance", { credentials: "include" }).then(r => r.json()),
-        ]).then(([c, s, sp]) => {
+            fetch(API_URL + "/api/analytics/vision-cost", { credentials: "include" }).then(r => r.json()).catch(() => null),
+        ]).then(([c, s, sp, vc]) => {
             setCappers(c)
             setSummary(s)
             setOverallSportPerf(sp)
+            if (vc) setVisionCost(vc)
             setLoading(false)
         }).catch(() => setLoading(false))
     }, [])
@@ -346,6 +353,30 @@ export default function AnalyticsPage() {
                             </Link>
                         )}
                     </div>
+                </div>
+            )}
+
+            {/* Vision API Cost */}
+            {visionCost && (
+                <div className="rounded-xl bg-white border border-slate-200 shadow-sm px-5 py-3 flex flex-wrap items-center gap-6 text-sm">
+                    <span className="text-xs text-slate-400 uppercase tracking-wide font-medium">Claude Vision Cost</span>
+                    <span>
+                        <span className="font-semibold text-slate-900">${visionCost.total_cost_usd.toFixed(4)}</span>
+                        <span className="text-slate-500 ml-1">total</span>
+                    </span>
+                    <span>
+                        <span className="font-semibold text-slate-900">{visionCost.total_calls.toLocaleString()}</span>
+                        <span className="text-slate-500 ml-1">API calls</span>
+                    </span>
+                    <span>
+                        <span className="font-semibold text-slate-900">{visionCost.cache_hit_rate_pct}%</span>
+                        <span className="text-slate-500 ml-1">cache hit rate</span>
+                    </span>
+                    {visionCost.total_calls > 0 && (
+                        <span className="text-slate-400 text-xs">
+                            avg ${(visionCost.total_cost_usd / visionCost.total_calls * 1000).toFixed(2)}¢/call
+                        </span>
+                    )}
                 </div>
             )}
 

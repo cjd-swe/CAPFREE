@@ -53,6 +53,19 @@ class Notification(Base):
     read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class ApiUsage(Base):
+    __tablename__ = "api_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    model = Column(String)
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    cache_read_tokens = Column(Integer, default=0)
+    cache_write_tokens = Column(Integer, default=0)
+    cost_usd = Column(Float, default=0.0)
+
+
 class TelegramQueue(Base):
     __tablename__ = "telegram_queue"
 

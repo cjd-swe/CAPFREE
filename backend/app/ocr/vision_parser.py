@@ -5,6 +5,7 @@ Called only when OCR+regex produces an unreliable result (0 picks, garbage
 text, or all picks missing units+odds+sport). Returns the same pick dict
 shape as parser.parse_picks so downstream code is unchanged.
 """
+import asyncio
 import base64
 import json
 import logging
@@ -12,6 +13,11 @@ import re
 from typing import Any, Dict, List, Optional
 
 import anthropic
+
+_HAIKU_INPUT_PER_TOK   = 1.00 / 1_000_000
+_HAIKU_OUTPUT_PER_TOK  = 5.00 / 1_000_000
+_HAIKU_CACHE_W_PER_TOK = 1.25 / 1_000_000
+_HAIKU_CACHE_R_PER_TOK = 0.10 / 1_000_000
 
 from ..config import settings
 
@@ -326,6 +332,9 @@ async def parse_picks_from_image(image_bytes: bytes) -> Dict[str, Any]:
         logger.exception("Vision API call failed")
         return _EMPTY
 
+    # Log token usage asynchronously — non-blocking, best-effort
+    asyncio.create_task(_log_usage(response.usage, settings.VISION_MODEL))
+
     try:
         raw = response.content[0].text.strip()
         raw = _CODE_FENCE_RE.sub("", raw).strip()
@@ -339,6 +348,36 @@ async def parse_picks_from_image(image_bytes: bytes) -> Dict[str, Any]:
         "capper_name": data.get("capper_name") or None,
         "picks": picks,
     }
+
+
+async def _log_usage(usage: Any, model: str) -> None:
+    try:
+        from ..database import AsyncSessionLocal
+        from .. import models as _models
+
+        cache_read  = getattr(usage, "cache_read_input_tokens", 0) or 0
+        cache_write = getattr(usage, "cache_creation_input_tokens", 0) or 0
+        billed_input = max(0, usage.input_tokens - cache_read)
+
+        cost = (
+            billed_input   * _HAIKU_INPUT_PER_TOK
+            + cache_write  * _HAIKU_CACHE_W_PER_TOK
+            + cache_read   * _HAIKU_CACHE_R_PER_TOK
+            + usage.output_tokens * _HAIKU_OUTPUT_PER_TOK
+        )
+
+        async with AsyncSessionLocal() as session:
+            session.add(_models.ApiUsage(
+                model=model,
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                cache_read_tokens=cache_read,
+                cache_write_tokens=cache_write,
+                cost_usd=cost,
+            ))
+            await session.commit()
+    except Exception:
+        logger.debug("Failed to log API usage", exc_info=True)
 
 
 def _normalize_picks(raw_picks: List[Any]) -> List[Dict[str, Any]]:

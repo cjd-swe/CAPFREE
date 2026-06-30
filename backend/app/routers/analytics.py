@@ -367,3 +367,49 @@ async def get_sport_performance(db: AsyncSession = Depends(database.get_db)):
 
     formatted_stats.sort(key=lambda x: x["total_picks"], reverse=True)
     return formatted_stats
+
+
+@router.get("/vision-cost")
+async def get_vision_cost(db: AsyncSession = Depends(database.get_db)):
+    """Aggregate Claude vision API usage and estimated cost."""
+    result = await db.execute(
+        select(
+            func.count(models.ApiUsage.id).label("total_calls"),
+            func.sum(models.ApiUsage.input_tokens).label("input_tokens"),
+            func.sum(models.ApiUsage.output_tokens).label("output_tokens"),
+            func.sum(models.ApiUsage.cache_read_tokens).label("cache_read_tokens"),
+            func.sum(models.ApiUsage.cache_write_tokens).label("cache_write_tokens"),
+            func.sum(models.ApiUsage.cost_usd).label("total_cost"),
+        )
+    )
+    row = result.one()
+
+    total_input = row.input_tokens or 0
+    cache_read  = row.cache_read_tokens or 0
+    cache_hit_rate = round(cache_read / total_input * 100, 1) if total_input > 0 else 0.0
+
+    # Daily breakdown — last 30 days
+    daily_result = await db.execute(
+        select(
+            func.date(models.ApiUsage.created_at).label("date"),
+            func.count(models.ApiUsage.id).label("calls"),
+            func.sum(models.ApiUsage.cost_usd).label("cost"),
+        )
+        .where(models.ApiUsage.created_at >= datetime.utcnow() - timedelta(days=30))
+        .group_by(func.date(models.ApiUsage.created_at))
+        .order_by(func.date(models.ApiUsage.created_at))
+    )
+
+    return {
+        "total_calls": row.total_calls or 0,
+        "total_input_tokens": total_input,
+        "total_output_tokens": row.output_tokens or 0,
+        "cache_read_tokens": cache_read,
+        "cache_write_tokens": row.cache_write_tokens or 0,
+        "cache_hit_rate_pct": cache_hit_rate,
+        "total_cost_usd": round(row.total_cost or 0, 4),
+        "daily": [
+            {"date": str(r.date), "calls": r.calls, "cost": round(r.cost or 0, 4)}
+            for r in daily_result
+        ],
+    }
