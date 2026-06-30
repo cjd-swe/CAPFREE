@@ -19,7 +19,11 @@ export default function DashboardLayout({
                 if (!res.ok) router.replace("/login")
                 else setChecked(true)
             })
-            .catch(() => router.replace("/login"))
+            .catch(() => {
+                // Server may be waking up (Render free tier spindown).
+                // Auth is disabled when APP_PASSWORD is unset, so don't redirect — just let through.
+                setChecked(true)
+            })
     }, [router])
 
     if (!checked) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 
@@ -9,6 +9,14 @@ export default function LoginPage() {
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+
+    useEffect(() => {
+        // If auth is disabled (APP_PASSWORD unset), /api/auth/me returns 200 with no cookie.
+        // Skip the login form entirely and go straight to the dashboard.
+        fetch(apiUrl("/api/auth/me"), { credentials: "include" })
+            .then(res => { if (res.ok) router.replace("/dashboard") })
+            .catch(() => {})
+    }, [router])
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
