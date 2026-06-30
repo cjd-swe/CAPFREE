@@ -16,8 +16,8 @@ services:
       # Required for hybrid/vision parse mode
       - key: ANTHROPIC_API_KEY
         sync: false
-      # Comma-separated allowed origins. Set via Render dashboard to include your
-      # Vercel frontend URL, e.g.: https://capfree.vercel.app,http://localhost:3000
+      # Comma-separated allowed origins. Set via Render dashboard:
+      # https://frontend-two-silk-92.vercel.app,http://localhost:3000
       - key: CORS_ORIGINS
         sync: false
       # Optional: password-protect all routes

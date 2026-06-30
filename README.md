@@ -6,7 +6,7 @@ SharpWatch is a private sports-picks tracker for monitoring cappers over time. I
 
 | | URL |
 | --- | --- |
-| Frontend | https://capfree-eight.vercel.app |
+| Frontend | https://frontend-two-silk-92.vercel.app |
 | Backend API | https://sharpwatch-api.onrender.com |
 
 ## Current Status
