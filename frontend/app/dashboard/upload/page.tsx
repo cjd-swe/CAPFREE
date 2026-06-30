@@ -254,8 +254,11 @@ export default function UploadPage() {
         setSaveSuccess(false)
 
         try {
-            // Save each pick
-            const savePromises = picks.map(pick => {
+            // Save picks one at a time — saving the same brand-new capper
+            // concurrently races on the backend's unique capper-name
+            // constraint, which can fail the whole batch.
+            const responses = []
+            for (const pick of picks) {
                 const payload = {
                     capper_name: selectedCapper,
                     sport: pick.sport || "Unknown",
@@ -270,7 +273,7 @@ export default function UploadPage() {
                     game_date: gameDate ? new Date(gameDate).toISOString() : null,
                 }
 
-                return fetch(API_URL + "/api/picks/", {
+                const res = await fetch(API_URL + "/api/picks/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -278,9 +281,8 @@ export default function UploadPage() {
                     body: JSON.stringify(payload),
                     credentials: "include",
                 })
-            })
-
-            const responses = await Promise.all(savePromises)
+                responses.push(res)
+            }
 
             if (responses.some(r => !r.ok)) {
                 throw new Error("Some picks failed to save")

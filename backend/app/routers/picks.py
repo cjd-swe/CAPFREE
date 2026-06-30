@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -68,21 +69,42 @@ async def _find_duplicate_pick(
     return None
 
 
+async def _get_or_create_capper(db: AsyncSession, name: str) -> models.Capper:
+    """
+    Resolve a capper by name, creating it if needed. Concurrent requests for
+    the same brand-new capper name (e.g. saving several extracted picks at
+    once) can race on the unique `cappers.name` constraint — the loser's
+    commit raises IntegrityError. Recover by rolling back and re-selecting
+    the row the winner just committed, rather than letting the whole
+    request (and its pick) fail.
+    """
+    result = await db.execute(select(models.Capper).where(models.Capper.name == name))
+    capper = result.scalars().first()
+    if capper:
+        return capper
+
+    capper = models.Capper(name=name)
+    db.add(capper)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        result = await db.execute(select(models.Capper).where(models.Capper.name == name))
+        capper = result.scalars().first()
+        if not capper:
+            raise
+    else:
+        await db.refresh(capper)
+    return capper
+
+
 @router.post("/", response_model=schemas.Pick)
 async def create_pick(
     pick: schemas.PickCreate,
     response: Response,
     db: AsyncSession = Depends(database.get_db),
 ):
-    # Resolve or create capper
-    result = await db.execute(select(models.Capper).where(models.Capper.name == pick.capper_name))
-    capper = result.scalars().first()
-
-    if not capper:
-        capper = models.Capper(name=pick.capper_name)
-        db.add(capper)
-        await db.commit()
-        await db.refresh(capper)
+    capper = await _get_or_create_capper(db, pick.capper_name)
 
     # Duplicate check — return existing pick rather than inserting a copy
     existing = await _find_duplicate_pick(db, capper.id, pick.pick_text, pick.game_date)

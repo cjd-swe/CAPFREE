@@ -4,6 +4,7 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -147,7 +148,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         async with database.AsyncSessionLocal() as session:
-            # Resolve or create capper
+            # Resolve or create capper. Updates are processed sequentially by
+            # default, but guard against the unique-name race anyway (e.g. if
+            # concurrent_updates is ever enabled, or a manual upload for the
+            # same new capper lands at the same moment).
             result = await session.execute(
                 select(models.Capper).where(models.Capper.name == capper_name)
             )
@@ -155,8 +159,18 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             if not capper:
                 capper = models.Capper(name=capper_name)
                 session.add(capper)
-                await session.commit()
-                await session.refresh(capper)
+                try:
+                    await session.commit()
+                except IntegrityError:
+                    await session.rollback()
+                    result = await session.execute(
+                        select(models.Capper).where(models.Capper.name == capper_name)
+                    )
+                    capper = result.scalars().first()
+                    if not capper:
+                        raise
+                else:
+                    await session.refresh(capper)
 
             # Use message send date as game_date — picks are typically for games later that day
             msg_date = update.message.date
@@ -175,6 +189,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
             saved_count = 0
             skipped_count = 0
+            failed_count = 0
 
             for pick_data in picks:
                 pick_text = pick_data.get("pick_text", "")
@@ -190,35 +205,62 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     skipped_count += 1
                     continue
 
-                db_pick = models.Pick(
-                    capper_id=capper.id,
-                    sport=pick_data.get("sport", "Unknown"),
-                    league=pick_data.get("league"),
-                    match_key=pick_data.get("match_key"),
-                    pick_text=pick_text,
-                    units_risked=pick_data.get("units_risked", 1.0),
-                    odds=pick_data.get("odds"),
-                    result="PENDING",
-                    profit=0.0,
-                    raw_text=raw_text,
-                    game_date=msg_date,
-                )
-                session.add(db_pick)
-                await session.flush()  # get db_pick.id
+                # Each pick gets its own SAVEPOINT so a bad row (e.g. a field
+                # that fails a DB constraint) only loses that one pick instead
+                # of rolling back every other pick already staged in this
+                # message's batch.
+                try:
+                    async with session.begin_nested():
+                        db_pick = models.Pick(
+                            capper_id=capper.id,
+                            sport=pick_data.get("sport", "Unknown"),
+                            league=pick_data.get("league"),
+                            match_key=pick_data.get("match_key"),
+                            pick_text=pick_text,
+                            units_risked=pick_data.get("units_risked", 1.0),
+                            odds=pick_data.get("odds"),
+                            result="PENDING",
+                            profit=0.0,
+                            raw_text=raw_text,
+                            game_date=msg_date,
+                        )
+                        session.add(db_pick)
+                        await session.flush()  # get db_pick.id
 
-                units_str = pick_data.get("units_risked", 1.0)
-                notif_msg = f"New pick from {capper.name}: {pick_text} ({units_str}u)"
-                notification = models.Notification(
-                    pick_id=db_pick.id,
-                    message=notif_msg,
-                    read=False,
-                )
-                session.add(notification)
+                        units_str = pick_data.get("units_risked", 1.0)
+                        notif_msg = f"New pick from {capper.name}: {pick_text} ({units_str}u)"
+                        notification = models.Notification(
+                            pick_id=db_pick.id,
+                            message=notif_msg,
+                            read=False,
+                        )
+                        session.add(notification)
+                except Exception:
+                    logger.exception(
+                        f"Telegram: failed to save pick '{pick_text}' for {capper.name}"
+                    )
+                    failed_count += 1
+                    continue
                 saved_count += 1
+
+            if failed_count:
+                # Surface the failure in-app — otherwise it's only visible by
+                # digging through server logs.
+                session.add(models.Notification(
+                    pick_id=None,
+                    message=(
+                        f"{failed_count} pick(s) from {capper.name} failed to save "
+                        f"— check server logs for details"
+                    ),
+                    read=False,
+                ))
 
             await session.commit()
 
-        logger.info(f"Telegram: saved {saved_count} picks, skipped {skipped_count} duplicates from {capper_name}")
+        logger.info(
+            f"Telegram: saved {saved_count} picks, skipped {skipped_count} duplicates, "
+            f"failed {failed_count} from {capper_name}"
+        )
 
         # Also save to queue for record-keeping
         async with database.AsyncSessionLocal() as session:
@@ -231,8 +273,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             session.add(queue_item)
             await session.commit()
 
-    except Exception as e:
-        logger.error(f"Telegram photo handler error: {e}")
+    except Exception:
+        logger.exception("Telegram photo handler error")
 
 
 def create_application() -> Application:
