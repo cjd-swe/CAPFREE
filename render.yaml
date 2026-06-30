@@ -30,3 +30,27 @@ services:
         value: hybrid
       - key: VISION_MODEL
         value: claude-haiku-4-5-20251001
+
+crons:
+  # Pings /health every 6 hours — keeps the Supabase free-tier DB from pausing
+  - type: cron
+    name: db-keep-alive
+    runtime: image
+    image:
+      url: docker.io/curlimages/curl:8
+    schedule: "0 */6 * * *"
+    command: curl -sf https://sharpwatch-api.onrender.com/health
+
+  # Auto-grades all pending picks every hour via ESPN
+  - type: cron
+    name: auto-grade
+    runtime: image
+    image:
+      url: docker.io/curlimages/curl:8
+    schedule: "0 * * * *"
+    command: >-
+      curl -sf -X POST https://sharpwatch-api.onrender.com/api/picks/auto-grade
+      -H "Authorization: Bearer $APP_PASSWORD"
+    envVars:
+      - key: APP_PASSWORD
+        sync: false

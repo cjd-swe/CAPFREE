@@ -34,9 +34,23 @@ def _verify_token(token: str) -> bool:
 
 
 async def require_auth(request: Request):
-    """FastAPI dependency — raises 401 if auth is enabled and token is missing/invalid."""
+    """FastAPI dependency — raises 401 if auth is enabled and token is missing/invalid.
+
+    Accepts either:
+    - JWT cookie (browser sessions)
+    - Authorization: Bearer <APP_PASSWORD> (cron / service calls)
+    """
     if not settings.APP_PASSWORD:
         return  # auth disabled
+
+    # Service-token path: Bearer APP_PASSWORD in Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        if auth_header[len("Bearer "):] == settings.APP_PASSWORD:
+            return
+        raise HTTPException(status_code=401, detail="Invalid service token")
+
+    # Browser path: signed JWT cookie
     token = request.cookies.get(COOKIE_NAME)
     if not token or not _verify_token(token):
         raise HTTPException(status_code=401, detail="Not authenticated")
