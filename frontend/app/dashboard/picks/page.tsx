@@ -299,8 +299,6 @@ export default function PicksPage() {
         return true
     })
 
-    if (loading) return <div className="text-slate-700">Loading...</div>
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -454,7 +452,11 @@ export default function PicksPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
-                            {filteredPicks.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={10} className="px-6 py-4 text-center text-slate-500">Loading picks...</td>
+                                </tr>
+                            ) : filteredPicks.length === 0 ? (
                                 <tr>
                                     <td colSpan={10} className="px-6 py-4 text-center text-slate-700">No picks found</td>
                                 </tr>

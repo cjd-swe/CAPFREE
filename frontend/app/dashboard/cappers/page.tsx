@@ -82,8 +82,6 @@ export default function CappersPage() {
         </th>
     )
 
-    if (loading) return <div className="text-slate-700">Loading...</div>
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -94,7 +92,9 @@ export default function CappersPage() {
             </div>
 
             <div className="rounded-lg bg-white shadow overflow-hidden">
-                {cappers.length === 0 ? (
+                {loading ? (
+                    <div className="p-6 text-center text-slate-500">Loading cappers...</div>
+                ) : cappers.length === 0 ? (
                     <div className="p-6 text-center text-slate-700">No cappers with picks yet</div>
                 ) : (
                     <div className="overflow-x-auto">

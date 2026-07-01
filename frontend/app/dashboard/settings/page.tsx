@@ -123,10 +123,6 @@ export default function SettingsPage() {
         setFormData({ name: "", telegram_chat_id: "" })
     }
 
-    if (loading) {
-        return <div className="text-slate-700">Loading...</div>
-    }
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -210,7 +206,11 @@ export default function SettingsPage() {
                     <h2 className="text-lg font-medium text-slate-900">Cappers</h2>
                 </div>
                 <div className="divide-y divide-slate-200">
-                    {cappers.length === 0 ? (
+                    {loading ? (
+                        <div className="p-6 text-center text-slate-500">
+                            Loading cappers...
+                        </div>
+                    ) : cappers.length === 0 ? (
                         <div className="p-6 text-center text-slate-700">
                             No cappers yet. Add one to get started.
                         </div>
