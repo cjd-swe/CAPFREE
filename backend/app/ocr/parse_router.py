@@ -67,6 +67,18 @@ def _is_unreliable(raw_text: str, picks: List[Dict[str, Any]]) -> bool:
     low_conf = sum(1 for p in picks if _low_confidence(p))
     if low_conf > len(picks) / 2:
         return True
+    # The regex parser can silently drop whole lines it doesn't recognize
+    # (e.g. a "(1U) Player pick vs Opponent (-145)" units-prefix format),
+    # rather than returning them as low-confidence picks. Count units
+    # markers in the raw text as a proxy for how many pick lines should
+    # exist — if there are more markers than picks, lines were dropped.
+    unit_marker_count = len(re.findall(
+        r"\(\s*\d+(?:\.\d+)?\s*u\s*\)|\b\d+(?:\.\d+)?\s*u\b",
+        raw_text,
+        re.IGNORECASE,
+    ))
+    if unit_marker_count > len(picks):
+        return True
     return False
 
 
