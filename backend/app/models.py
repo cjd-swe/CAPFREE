@@ -75,3 +75,26 @@ class TelegramQueue(Base):
     photo_path = Column(String)
     processed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TelegramMessage(Base):
+    """Audit log of every Telegram update the bot receives.
+
+    One row per incoming message, written the moment the update arrives and
+    updated with the processing outcome. This is what makes bot activity
+    visible in the UI — if a message you sent has no row here, Telegram never
+    delivered it to the bot (privacy mode, bot not in the chat, backend down).
+    """
+    __tablename__ = "telegram_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(String)
+    chat_id = Column(String, index=True)
+    chat_title = Column(String, nullable=True)
+    sender_name = Column(String, nullable=True)
+    message_type = Column(String)   # "photo" | "document" | "text" | "command" | "other"
+    text = Column(String, nullable=True)  # message text or photo caption
+    status = Column(String, default="received")  # "received" | "saved_picks" | "no_picks" | "not_parsed" | "error"
+    detail = Column(String, nullable=True)
+    picks_saved = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

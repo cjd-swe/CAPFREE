@@ -60,7 +60,7 @@ CAPFREE/
 │   │   ├── config.py                # Env-driven settings
 │   │   ├── database.py              # Async engine/session setup
 │   │   ├── main.py                  # FastAPI app + router wiring
-│   │   ├── models.py                # Capper, Pick, Notification, TelegramQueue
+│   │   ├── models.py                # Capper, Pick, Notification, TelegramQueue, TelegramMessage
 │   │   ├── schemas.py               # Pydantic schemas
 │   │   ├── ocr/
 │   │   │   ├── parse_router.py      # OCR-first, vision-fallback router
@@ -292,6 +292,8 @@ Base URL: `http://localhost:8000/api`
 ### Telegram
 
 - `POST /telegram/webhook`
+- `GET /telegram/status` — bot health: connectivity, polling state, and `can_read_all_group_messages` (False = BotFather privacy mode is blocking group messages)
+- `GET /telegram/messages?limit=50` — audit log of every message the bot has received, with processing outcome
 
 ## Frontend Pages
 

@@ -129,7 +129,7 @@ which is idempotent and will no-op against an already-migrated schema.
 
 - `main.py` — FastAPI app; mounts routers under `/api`; on startup runs `Base.metadata.create_all` **and** kicks off the Telegram polling task (only if `TELEGRAM_BOT_TOKEN` is set and not the placeholder).
 - `database.py` — async SQLAlchemy engine + session factory. All DB access is async.
-- `models.py` — `Capper`, `Pick`, `Notification`, `TelegramQueue`. Deleting a capper cascades to picks; deleting a pick cascades to notifications.
+- `models.py` — `Capper`, `Pick`, `Notification`, `TelegramQueue`, `TelegramMessage` (audit log of every update the bot receives). Deleting a capper cascades to picks; deleting a pick cascades to notifications.
 - `schemas.py` — Pydantic request/response schemas, including `AutoGradeResult`.
 - `routers/` — one file per resource (picks, upload, analytics, notifications, settings, telegram). Analytics endpoints compute leaderboards and profit history in SQL, not in Python loops.
 - `services/espn_service.py` — ESPN scoreboard fetch + spread/ML/total grading logic. No API key required.

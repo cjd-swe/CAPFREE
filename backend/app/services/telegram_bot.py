@@ -7,13 +7,124 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, TypeHandler, filters, ContextTypes
 
 from .. import models, database
 from ..config import settings
 from ..ocr import parse_router, parser
 
 logger = logging.getLogger(__name__)
+
+# Runtime state exposed via GET /api/telegram/status so the UI can show
+# whether the bot is actually receiving anything.
+bot_state = {
+    "polling_running": False,
+    "started_at": None,      # datetime | None
+    "last_error": None,      # str | None
+    "last_update_at": None,  # datetime | None
+}
+
+
+def _extract_forward_name(msg) -> Optional[str]:
+    """Get the original sender's display name from a forwarded message.
+
+    PTB v21 removed `Message.forward_from` / `forward_sender_name` in favor of
+    `forward_origin` — accessing the old attributes raises AttributeError,
+    which used to crash the photo handler on every message. Handle both APIs.
+    """
+    origin = getattr(msg, "forward_origin", None)
+    if origin is not None:
+        sender_user = getattr(origin, "sender_user", None)  # MessageOriginUser
+        if sender_user is not None:
+            return sender_user.full_name or sender_user.username
+        hidden_name = getattr(origin, "sender_user_name", None)  # MessageOriginHiddenUser
+        if hidden_name:
+            return hidden_name
+        # MessageOriginChat / MessageOriginChannel
+        chat = getattr(origin, "sender_chat", None) or getattr(origin, "chat", None)
+        if chat is not None:
+            return chat.title or getattr(chat, "username", None)
+        return None
+    # Pre-v21 PTB fallback
+    fwd_user = getattr(msg, "forward_from", None)
+    if fwd_user is not None:
+        return fwd_user.full_name or fwd_user.username
+    return getattr(msg, "forward_sender_name", None)
+
+
+def _describe_message(msg) -> tuple[str, Optional[str]]:
+    """Classify a Telegram message and pull its display text."""
+    if msg.photo:
+        return "photo", msg.caption
+    if msg.document:
+        return "document", msg.caption or msg.document.file_name
+    if msg.text:
+        if msg.text.startswith("/"):
+            return "command", msg.text
+        return "text", msg.text
+    return "other", msg.caption
+
+
+async def record_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log every incoming update to telegram_messages (runs before handlers).
+
+    This is the visibility layer: if a message you sent to the group never
+    shows up here, Telegram didn't deliver it to the bot at all — check
+    privacy mode (@BotFather /setprivacy) and that the bot is in the chat.
+    """
+    bot_state["last_update_at"] = datetime.utcnow()
+    msg = update.effective_message
+    if msg is None:
+        return
+    try:
+        msg_type, text = _describe_message(msg)
+        sender = None
+        if msg.from_user:
+            sender = msg.from_user.full_name or msg.from_user.username
+        async with database.AsyncSessionLocal() as session:
+            session.add(models.TelegramMessage(
+                message_id=str(msg.message_id),
+                chat_id=str(msg.chat_id),
+                chat_title=getattr(msg.chat, "title", None),
+                sender_name=sender,
+                message_type=msg_type,
+                text=(text or "")[:1000] or None,
+                status="received",
+            ))
+            await session.commit()
+    except Exception:
+        logger.exception("Telegram: failed to record incoming message")
+
+
+async def _set_message_status(
+    update: Update,
+    status: str,
+    detail: Optional[str] = None,
+    picks_saved: int = 0,
+) -> None:
+    """Update the audit row created by record_update with the outcome."""
+    msg = update.effective_message
+    if msg is None:
+        return
+    try:
+        async with database.AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(models.TelegramMessage)
+                .where(
+                    models.TelegramMessage.chat_id == str(msg.chat_id),
+                    models.TelegramMessage.message_id == str(msg.message_id),
+                )
+                .order_by(models.TelegramMessage.id.desc())
+            )
+            row = result.scalars().first()
+            if row is None:
+                return
+            row.status = status
+            row.detail = detail
+            row.picks_saved = picks_saved
+            await session.commit()
+    except Exception:
+        logger.exception("Telegram: failed to update message status")
 
 # Prefixes users commonly write before a capper name in the caption
 _CAPTION_PREFIX_RE = re.compile(
@@ -78,13 +189,37 @@ def _extract_capper_from_forward_text(text: Optional[str]) -> Optional[str]:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("SharpWatch bot active. Send pick screenshots to this group.")
+    await _set_message_status(update, "not_parsed", "Bot command")
+
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Text messages aren't parsed for picks — record them so they're visible."""
+    await _set_message_status(
+        update,
+        "not_parsed",
+        "Text messages aren't parsed — send pick screenshots as photos",
+    )
+
+
+async def handle_other(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Catch-all for unsupported message types (video, audio, non-image files)."""
+    await _set_message_status(
+        update,
+        "not_parsed",
+        "Unsupported message type — send pick screenshots as photos or image files",
+    )
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Download photo, OCR it, save picks to DB, create notifications."""
     try:
-        photo_file = await update.message.photo[-1].get_file()
-        photo_bytes = bytes(await photo_file.download_as_bytearray())
+        # Screenshots arrive either as compressed photos or as uncompressed
+        # image documents ("send as file") — accept both.
+        if update.message.photo:
+            tg_file = await update.message.photo[-1].get_file()
+        else:
+            tg_file = await update.message.document.get_file()
+        photo_bytes = bytes(await tg_file.download_as_bytearray())
 
         parse_result = await parse_router.extract_picks(photo_bytes)
         picks = parse_result["picks"]
@@ -98,11 +233,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     "returned no picks — screenshot needs manual review",
                     update.message.message_id,
                 )
+                await _set_message_status(
+                    update, "no_picks",
+                    "OCR was unreliable and vision found no picks — upload this "
+                    "screenshot manually via the Upload page",
+                )
             else:
                 logger.info(
                     "Telegram photo message_id=%s: no picks parsed (engine=%s)",
                     update.message.message_id,
                     engine,
+                )
+                await _set_message_status(
+                    update, "no_picks", f"No picks parsed from image (engine={engine})",
                 )
             return
 
@@ -118,15 +261,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if update.message.from_user:
             sender_name = update.message.from_user.full_name or update.message.from_user.username
 
-        forward_name = None
-        if update.message.forward_from:
-            forward_name = (
-                update.message.forward_from.full_name
-                or update.message.forward_from.username
-            )
-        elif update.message.forward_sender_name:
-            # Privacy-protected accounts expose only a display name string
-            forward_name = update.message.forward_sender_name
+        forward_name = _extract_forward_name(update.message)
 
         caption_name = _extract_capper_from_caption(caption)
         forward_text_name = _extract_capper_from_forward_text(caption)
@@ -262,6 +397,15 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"failed {failed_count} from {capper_name}"
         )
 
+        outcome_bits = [f"{saved_count} pick(s) saved for {capper_name}"]
+        if skipped_count:
+            outcome_bits.append(f"{skipped_count} duplicate(s) skipped")
+        if failed_count:
+            outcome_bits.append(f"{failed_count} failed — check server logs")
+        await _set_message_status(
+            update, "saved_picks", ", ".join(outcome_bits), picks_saved=saved_count,
+        )
+
         # Also save to queue for record-keeping
         async with database.AsyncSessionLocal() as session:
             queue_item = models.TelegramQueue(
@@ -273,16 +417,29 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             session.add(queue_item)
             await session.commit()
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Telegram photo handler error")
+        await _set_message_status(
+            update, "error", f"Processing failed: {str(exc)[:300]}",
+        )
 
 
 def create_application() -> Application:
     if not settings.TELEGRAM_BOT_TOKEN or settings.TELEGRAM_BOT_TOKEN == "your_token_here":
         return None
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+    # Group -1 runs before the group-0 handlers and records *every* update,
+    # even types no other handler processes.
+    application.add_handler(TypeHandler(Update, record_update), group=-1)
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(
+        MessageHandler(
+            filters.ALL & ~filters.PHOTO & ~filters.Document.IMAGE & ~filters.TEXT,
+            handle_other,
+        )
+    )
     return application
 
 
@@ -295,14 +452,22 @@ async def start_polling() -> None:
     try:
         await app.initialize()
         await app.start()
-        await app.updater.start_polling(drop_pending_updates=True)
+        # Keep pending updates: messages sent while the backend was down or
+        # asleep are processed on wake instead of being silently discarded.
+        await app.updater.start_polling(drop_pending_updates=False)
+        bot_state["polling_running"] = True
+        bot_state["started_at"] = datetime.utcnow()
+        bot_state["last_error"] = None
         logger.info("Telegram bot polling started")
         # Keep running until cancelled
         while True:
             await asyncio.sleep(3600)
     except asyncio.CancelledError:
+        bot_state["polling_running"] = False
         await app.updater.stop()
         await app.stop()
         await app.shutdown()
     except Exception as e:
+        bot_state["polling_running"] = False
+        bot_state["last_error"] = str(e)
         logger.error(f"Telegram bot error: {e}")

@@ -138,3 +138,32 @@ class TelegramQueue(TelegramQueueBase):
 
     class Config:
         from_attributes = True
+
+
+class TelegramMessage(BaseModel):
+    id: int
+    message_id: str
+    chat_id: str
+    chat_title: Optional[str] = None
+    sender_name: Optional[str] = None
+    message_type: str
+    text: Optional[str] = None
+    status: str
+    detail: Optional[str] = None
+    picks_saved: int = 0
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TelegramStatus(BaseModel):
+    configured: bool
+    connected: bool = False
+    bot_username: Optional[str] = None
+    can_read_all_group_messages: Optional[bool] = None
+    polling_running: bool = False
+    polling_started_at: Optional[datetime] = None
+    last_error: Optional[str] = None
+    last_update_at: Optional[datetime] = None
+    messages_recorded: int = 0
